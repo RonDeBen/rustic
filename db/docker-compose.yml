@@ -1,13 +1,13 @@
-version: "3.9"  # Use the desired version of Docker Compose
+version: "3.9" # Use the desired version of Docker Compose
 
 services:
   postgres:
     build: ./db_init/
-    container_name: rustle_db
+    container_name: rustic_db
     restart: unless-stopped
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     environment:
+      POSTGRES_USER: rustic_user
       POSTGRES_PASSWORD: password
-
-
+      POSTGRES_DB: rustic_db
