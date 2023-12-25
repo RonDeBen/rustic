@@ -1,5 +1,5 @@
-use axum::{extract::Query, routing::get, Json, Router};
-use serde::{Deserialize, Serialize};
+use axum::{routing::get, Router};
+use rustic_server::routes::time_entry_routes::get_time_entries;
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 
@@ -20,37 +20,4 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-async fn get_time_entries(
-    Query(params): Query<TimeEntryQuery>,
-    pool: axum::extract::Extension<sqlx::PgPool>,
-) -> Json<Vec<TimeEntry>> {
-    let records = sqlx::query_as::<_, TimeEntry>(
-        "SELECT id, start_time, total_time, note, day FROM time_tracking.time_entries WHERE day = $1"
-    )
-    .bind(params.day)
-    .fetch_all(&*pool)
-    .await
-    .unwrap();
-
-    Json(records)
-}
-
-// async fn handler() -> &'static str {
-//     "Does this still work?"
-// }
-
-#[derive(Deserialize)]
-struct TimeEntryQuery {
-    day: i32,
-}
-
-#[derive(Serialize, sqlx::FromRow)]
-struct TimeEntry {
-    id: i32,
-    start_time: i64,
-    total_time: f64,
-    note: String,
-    day: i32,
 }
