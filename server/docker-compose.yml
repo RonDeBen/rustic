@@ -6,7 +6,7 @@ services:
     volumes:
       - .:/app
       - cargo-cache:/usr/local/cargo/registry
-    command: sh -c "cargo watch -x run"
+    command: sh -c "cargo run --bin rustic-server"
     ports:
       - "127.0.0.1:8000:3000"
     depends_on:

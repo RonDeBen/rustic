@@ -19,12 +19,12 @@ WORKDIR /app
 COPY --from=cacher /usr/local/cargo /usr/local/cargo
 
 # Install cargo-watch for live reloading
-RUN cargo install cargo-watch
+#RUN cargo install cargo-watch
 
 # Expose the necessary port
 EXPOSE 8000
 
 # Command to run the application using cargo-watch for live reloading
 # Note: The actual source code will be mounted, not copied
-CMD ["cargo", "watch", "-x", "run"]
+CMD ["cargo", "run", "--bin", "rustic-server"]
 

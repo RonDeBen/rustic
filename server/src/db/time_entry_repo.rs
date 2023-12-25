@@ -2,7 +2,7 @@ use sqlx::PgPool;
 
 use crate::models::time_entry::TimeEntry;
 
-pub async fn get_time_entries_for_day(
+pub async fn fetch_time_entries_for_day(
     pool: &PgPool,
     day: i32,
 ) -> Result<Vec<TimeEntry>, sqlx::Error> {
