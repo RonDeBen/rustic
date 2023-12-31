@@ -51,7 +51,7 @@ impl Component for ModeSelector {
             .block(
                 Block::default()
                     .title("Mode Selector")
-                    .title_alignment(Alignment::Right)
+                    .title_alignment(Alignment::Left)
                     .borders(Borders::ALL),
             )
             .alignment(Alignment::Right)

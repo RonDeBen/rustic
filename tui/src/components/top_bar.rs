@@ -29,7 +29,7 @@ impl Component for TopBar {
         let layout = Layout::new()
             .direction(Direction::Horizontal)
             .constraints(vec![Constraint::Percentage(75), Constraint::Percentage(25)])
-            .split(f.size());
+            .split(area);
 
         self.weekday_selector.draw(f, layout[0])?;
 
@@ -49,6 +49,7 @@ impl Component for TopBar {
         self.mode_selector.register_action_handler(tx)?;
         Ok(())
     }
+
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         if self.is_weekday_selector_event(&key) {
             self.weekday_selector.handle_key_events(key)?;

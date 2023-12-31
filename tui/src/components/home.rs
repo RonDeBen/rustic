@@ -1,52 +1,98 @@
-use std::{collections::HashMap, time::Duration};
-
+use super::{
+    notes::Notes, time_entry_container::TimeEntryContainer, top_bar::TopBar, Component, Frame,
+};
+use crate::{
+    action::Action,
+    config::{Config, KeyBindings},
+};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
 use serde::{Deserialize, Serialize};
+use std::{collections::HashMap, time::Duration};
 use tokio::sync::mpsc::UnboundedSender;
 
-use super::{Component, Frame};
-use crate::{
-  action::Action,
-  config::{Config, KeyBindings},
-};
+//TODO: move me somewhere better
+#[derive(Default)]
+pub struct TimeEntry {
+    pub id: i32,
+    pub start_time: i64,
+    pub total_time: f64,
+    pub note: String,
+    pub day: i32,
+}
 
 #[derive(Default)]
-pub struct Home {
-  command_tx: Option<UnboundedSender<Action>>,
-  config: Config,
+pub struct Home<'a> {
+    // not sure yet
+    command_tx: Option<UnboundedSender<Action>>,
+    config: Config,
+    // components
+    top_bar: TopBar,
+    time_entry_container: TimeEntryContainer,
+    notes: Notes<'a>,
+    // data
+    time_entries: Vec<TimeEntry>,
+    selected_entry_index: Option<usize>,
 }
 
-impl Home {
-  pub fn new() -> Self {
-    Self::default()
-  }
-}
-
-impl Component for Home {
-  fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
-    self.command_tx = Some(tx);
-    Ok(())
-  }
-
-  fn register_config_handler(&mut self, config: Config) -> Result<()> {
-    self.config = config;
-    Ok(())
-  }
-
-  fn update(&mut self, action: Action) -> Result<Option<Action>> {
-    match action {
-      Action::Tick => {
-      },
-      _ => {},
+impl Home<'_> {
+    pub fn new() -> Self {
+        Self::default()
     }
-    Ok(None)
-  }
-
-  fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-    f.render_widget(Paragraph::new("hello world"), area);
-    Ok(())
-  }
 }
 
+impl Component for Home<'_> {
+    fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
+        self.command_tx = Some(tx.clone());
+        self.top_bar.register_action_handler(tx.clone())?;
+        self.time_entry_container
+            .register_action_handler(tx.clone())?;
+        self.notes.register_action_handler(tx)?;
+
+        Ok(())
+    }
+
+    fn register_config_handler(&mut self, config: Config) -> Result<()> {
+        self.config = config;
+        Ok(())
+    }
+
+    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    //     match action {
+    //         Action::Tick => {}
+    //         Action::Quit => {}
+    //         _ => {}
+    //     }
+    //     Ok(None)
+    // }
+
+    fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        if self.notes.is_edit_mode {
+            self.notes.handle_key_events(key)?;
+        }else {
+            if let KeyCode::Char('q') = key.code { return Ok(Some(Action::Quit)) }
+            self.top_bar.handle_key_events(key)?;
+            self.time_entry_container.handle_key_events(key)?;
+            self.notes.handle_key_events(key)?;
+        }
+
+        Ok(None)
+    }
+    fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let layout = Layout::new()
+            .direction(Direction::Vertical)
+            .constraints(vec![
+                Constraint::Percentage(5),
+                Constraint::Percentage(70),
+                Constraint::Percentage(20),
+            ])
+            .split(f.size());
+
+        self.top_bar.draw(f, layout[0])?;
+        self.time_entry_container.draw(f, layout[1])?;
+        self.notes.draw(f, layout[2])?;
+
+        Ok(())
+    }
+}
