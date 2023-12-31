@@ -38,32 +38,43 @@ impl Component for WeekdaySelector {
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
         let days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-        // Create a vector of Spans, each representing a day of the week
-        let spans: Vec<Span> = days
-            .iter()
-            .enumerate()
-            .map(|(i, day)| {
-                let day_str = format!(" [{} ({})] ", day, i + 1);
-                if i == self.selected_day {
-                    // If it's the selected day, underline it
-                    Span::styled(day_str, Style::default().add_modifier(Modifier::UNDERLINED))
-                } else {
-                    // Otherwise, just display it normally
-                    Span::raw(day_str)
-                }
-            })
-            .collect();
+        let mut spans: Vec<Span> = Vec::new();
 
-        // Create a Line from the spans
+        for (i, day) in days.iter().enumerate() {
+            if i > 0 {
+                spans.push(Span::styled(" | ", Style::default().dim().fg(Color::Gray)));
+            }
+
+            let day_str = format!(" {} ({}) ", day, i + 1);
+
+            if i == self.selected_day {
+                spans.push(Span::styled(
+                    day_str,
+                    Style::new()
+                        .dim()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::UNDERLINED),
+                ));
+            } else {
+                spans.push(Span::styled(
+                    day_str,
+                    Style::default().dim().fg(Color::Gray),
+                ));
+            }
+        }
+
         let line = Line::from(spans);
 
-        // Create a Paragraph with the line
         let paragraph = Paragraph::new(vec![line])
-            .block(Block::default().borders(Borders::ALL))
-            .alignment(Alignment::Center)
+            .block(
+                Block::default()
+                    .title("Weekday Selector")
+                    .title_alignment(Alignment::Left)
+                    .borders(Borders::ALL),
+            )
+            .alignment(Alignment::Left)
             .wrap(Wrap { trim: true });
 
-        // Render the paragraph in the specified area
         f.render_widget(paragraph, rect);
 
         Ok(())

@@ -7,10 +7,8 @@ use tokio::sync::mpsc;
 use crate::{
     action::Action,
     components::{
-        fps::FpsCounter,
-        home::Home,
-        weekday_selector::{self, WeekdaySelector},
-        Component,
+        fps::FpsCounter, mode_selector::ModeSelector, top_bar::TopBar,
+        weekday_selector::WeekdaySelector, Component,
     },
     config::Config,
     mode::Mode,
@@ -30,15 +28,15 @@ pub struct App {
 
 impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let home = Home::new();
-        let fps = FpsCounter::default();
-        let weekday_selector = WeekdaySelector::default();
+        // let home = Home::new();
+        // let fps = FpsCounter::default();
+        let top_bar = TopBar::default();
         let config = Config::new()?;
-        let mode = Mode::Home;
+        let mode = Mode::Crud;
         Ok(Self {
             tick_rate,
             frame_rate,
-            components: vec![Box::new(home), Box::new(fps), Box::new(weekday_selector)],
+            components: vec![Box::new(top_bar)],
             should_quit: false,
             should_suspend: false,
             config,
