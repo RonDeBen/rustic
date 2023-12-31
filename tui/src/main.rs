@@ -1,46 +1,43 @@
-use crossterm::{
-    execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+
+pub mod action;
+pub mod app;
+pub mod cli;
+pub mod components;
+pub mod config;
+pub mod mode;
+pub mod tui;
+pub mod utils;
+
+use clap::Parser;
+use cli::Cli;
+use color_eyre::eyre::Result;
+
+use crate::{
+  app::App,
+  utils::{initialize_logging, initialize_panic_handler, version},
 };
-use tui::{
-    backend::CrosstermBackend,
-    // layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, Paragraph},
-    Terminal,
-};
 
-async fn draw_tui(charge_code: String) -> Result<(), Box<dyn std::error::Error>> {
-    let stdout = std::io::stdout();
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+async fn tokio_main() -> Result<()> {
+  initialize_logging()?;
 
-    execute!(std::io::stdout(), EnterAlternateScreen)?;
+  initialize_panic_handler()?;
 
-    terminal.draw(|f| {
-        let size = f.size();
-        let block = Block::default().borders(Borders::ALL);
-        let paragraph = Paragraph::new(charge_code)
-            .block(block)
-            .alignment(tui::layout::Alignment::Left);
-        f.render_widget(paragraph, size);
-    })?;
+  let args = Cli::parse();
+  let mut app = App::new(args.tick_rate, args.frame_rate)?;
+  app.run().await?;
 
-    execute!(std::io::stdout(), LeaveAlternateScreen)?;
-
-    Ok(())
+  Ok(())
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let charge_code_data = fetch_charge_code(1).await?;
-    draw_tui(charge_code_data).await?;
-
+async fn main() -> Result<()> {
+  if let Err(e) = tokio_main().await {
+    eprintln!("{} error: Something went wrong", env!("CARGO_PKG_NAME"));
+    Err(e)
+  } else {
     Ok(())
-}
-
-async fn fetch_charge_code(id: i32) -> Result<String, reqwest::Error> {
-    let url = format!("http://yourserveraddress/charge_codes/{}", id);
-    let resp = reqwest::get(url).await?;
-    let body = resp.text().await?;
-    Ok(body)
+  }
 }
