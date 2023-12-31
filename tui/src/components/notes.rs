@@ -28,16 +28,22 @@ impl Notes<'_> {
 impl Component for Notes<'_> {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let title = if self.is_edit_mode {
-            "TextArea (Edit Mode: 'ESC' to exit)"
+            "'ESC' to stop editing"
         } else {
-            "TextArea ('/' to enter edit mode)"
+            "'/' to edit"
         };
 
-        let block = Block::default().borders(Borders::ALL).title(title);
+        self.editor.set_block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(title)
+                .border_style(match self.is_edit_mode {
+                    true => Style::default().fg(Color::Yellow),
+                    false => Style::default().fg(Color::White),
+                }),
+        );
 
-        let widget = self.editor.widget();
-        f.render_widget(block, area);
-        f.render_widget(widget, area);
+        f.render_widget(self.editor.widget(), area);
 
         Ok(())
     }
