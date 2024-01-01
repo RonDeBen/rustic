@@ -1,15 +1,11 @@
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use crate::{
     action::Action,
-    components::{
-        fps::FpsCounter, home::Home, mode_selector::ModeSelector, top_bar::TopBar,
-        weekday_selector::WeekdaySelector, Component,
-    },
+    components::{home::Home, Component},
     config::Config,
     mode::Mode,
     tui,
@@ -30,7 +26,6 @@ impl App {
     pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
         let home = Home::new();
         // let fps = FpsCounter::default();
-        // let top_bar = TopBar::default();
         let config = Config::new()?;
         let mode = Mode::Crud;
         Ok(Self {

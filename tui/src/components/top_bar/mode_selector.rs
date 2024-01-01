@@ -1,9 +1,7 @@
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-
-use super::Component;
-use crate::{action::Action, mode::Mode, tui::Frame};
+use crate::{action::Action, mode::Mode, tui::Frame, components::Component};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ModeSelector {

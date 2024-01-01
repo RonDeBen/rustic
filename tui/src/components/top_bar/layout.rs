@@ -1,5 +1,5 @@
-use super::{mode_selector::ModeSelector, weekday_selector::WeekdaySelector, Component};
-use crate::action::Action;
+use super::{mode_selector::ModeSelector, weekday_selector::WeekdaySelector};
+use crate::{action::Action, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{

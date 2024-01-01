@@ -1,9 +1,7 @@
+use crate::{action::Action, tui::Frame, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-
-use super::Component;
-use crate::{action::Action, tui::Frame};
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct WeekdaySelector {

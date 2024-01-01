@@ -1,15 +1,11 @@
 use super::{
-    notes::Notes, time_entry_container::TimeEntryContainer, top_bar::TopBar, Component, Frame,
+    notes::Notes, time_entry::time_entry_container::TimeEntryContainer, top_bar::layout::TopBar,
+    Component, Frame,
 };
-use crate::{
-    action::Action,
-    config::{Config, KeyBindings},
-};
+use crate::{action::Action, config::Config};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{prelude::*, widgets::*};
-use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, time::Duration};
+use ratatui::prelude::*;
 use tokio::sync::mpsc::UnboundedSender;
 
 //TODO: move me somewhere better
@@ -32,8 +28,9 @@ pub struct Home<'a> {
     time_entry_container: TimeEntryContainer,
     notes: Notes<'a>,
     // data
-    time_entries: Vec<TimeEntry>,
-    selected_entry_index: Option<usize>,
+    // time_entries: Vec<TimeEntry>,
+    // selected_entry_index: Option<usize>,
+    // charge_codes: Vec<String>,
 }
 
 impl Home<'_> {
@@ -70,8 +67,10 @@ impl Component for Home<'_> {
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         if self.notes.is_edit_mode {
             self.notes.handle_key_events(key)?;
-        }else {
-            if let KeyCode::Char('q') = key.code { return Ok(Some(Action::Quit)) }
+        } else {
+            if let KeyCode::Char('q') = key.code {
+                return Ok(Some(Action::Quit));
+            }
             self.top_bar.handle_key_events(key)?;
             self.time_entry_container.handle_key_events(key)?;
             self.notes.handle_key_events(key)?;
@@ -79,7 +78,7 @@ impl Component for Home<'_> {
 
         Ok(None)
     }
-    fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+    fn draw(&mut self, f: &mut Frame<'_>, _area: Rect) -> Result<()> {
         let layout = Layout::new()
             .direction(Direction::Vertical)
             .constraints(vec![
