@@ -1,6 +1,25 @@
 use crate::models::time_entry::{Day, TimeEntry};
 use chrono::NaiveDateTime;
 use sqlx::PgPool;
+use std::collections::HashMap;
+
+pub async fn fetch_all_time_entries(pool: &PgPool) -> Result<Vec<TimeEntry>, sqlx::Error> {
+    sqlx::query_as::<_, TimeEntry>(
+        "SELECT * FROM time_tracking.time_entries ORDER BY day, start_time",
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub fn organize_time_entries_by_day(entries: Vec<TimeEntry>) -> HashMap<Day, Vec<TimeEntry>> {
+    let mut map: HashMap<Day, Vec<TimeEntry>> = HashMap::new();
+
+    for entry in entries {
+        map.entry(entry.day).or_default().push(entry);
+    }
+
+    map
+}
 
 pub async fn fetch_time_entries_for_day(
     pool: &PgPool,

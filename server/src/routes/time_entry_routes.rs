@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::db::time_entry_repo::update_time_entry_note;
 use crate::utils::error::Result;
 use crate::{
@@ -25,6 +27,15 @@ pub struct DayQuery {
 #[derive(Deserialize)]
 pub struct NoteQuery {
     note: String,
+}
+
+pub async fn get_time_entries_by_day(
+    pool: Extension<sqlx::PgPool>,
+) -> Result<Json<HashMap<Day, Vec<TimeEntry>>>> {
+    let entries = fetch_all_time_entries(&pool).await?;
+    let organized_entries = organize_time_entries_by_day(entries);
+
+    Ok(Json(organized_entries))
 }
 
 pub async fn get_time_entries_request(

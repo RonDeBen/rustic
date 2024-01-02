@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 use rustic_server::routes::{charge_code_routes::*, time_entry_routes::*};
@@ -18,6 +18,7 @@ async fn main() {
         .expect("Could not connect to the database");
 
     let app = Router::new()
+        .route("/time_entries_by_day", get(get_time_entries_by_day))
         .route("/time_entries", get(get_time_entries_request))
         .route("/time_entry", post(create_time_entry_request))
         .route("/time_entry/:id", put(update_time_entry_note_request))

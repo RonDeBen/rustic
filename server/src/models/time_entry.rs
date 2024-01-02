@@ -1,4 +1,4 @@
-use chrono::{Datelike, Utc, Weekday, NaiveDateTime};
+use chrono::{Datelike, NaiveDateTime, Utc, Weekday};
 use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -10,7 +10,7 @@ pub struct TimeEntry {
     pub day: Day,
 }
 
-#[derive(Debug, Clone, Copy, sqlx::Type, Serialize)]
+#[derive(Debug, Clone, Copy, sqlx::Type, Serialize, Eq, Hash, PartialEq)]
 #[repr(i8)]
 pub enum Day {
     Monday = 0,
