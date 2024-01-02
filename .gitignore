@@ -14,7 +14,6 @@ Cargo.lock
 # ---- Database (PostgreSQL) ----
 # Database storage files, logs, and backups
 *.db
-*.sql
 *.bak
 *.log
 *.pid
