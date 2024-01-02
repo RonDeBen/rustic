@@ -1,11 +1,11 @@
-use chrono::{Utc, Weekday, Datelike};
+use chrono::{Datelike, Utc, Weekday, NaiveDateTime};
 use serde::Serialize;
 
 #[derive(Serialize, sqlx::FromRow)]
 pub struct TimeEntry {
     pub id: i32,
-    pub start_time: i64,
-    pub total_time: f64,
+    pub start_time: NaiveDateTime,
+    pub total_time: i64, // milliseconds
     pub note: String,
     pub day: Day,
 }

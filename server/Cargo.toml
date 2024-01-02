@@ -12,7 +12,7 @@ path = "src/bin/server.rs"
 [dependencies]
 anyhow = "1.0.76"
 axum = "0.6.20"
-chrono = "0.4.31"
+chrono = {version = "0.4.31", features = ["serde"]}
 serde = "1.0.193"
 sqlx = {version = "0.7.3", features = ["postgres", "runtime-tokio-rustls", "chrono"] }
 thiserror = "1.0.51"

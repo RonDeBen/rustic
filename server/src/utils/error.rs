@@ -11,6 +11,8 @@ pub enum AppError {
     // Add more error types as needed
     #[error("An internal error occurred. Please try again later.")]
     InternalError,
+    #[error("Weekends are currently not supported")]
+    WeekendError,
 }
 
 use axum::{

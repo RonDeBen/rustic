@@ -1,7 +1,8 @@
-use axum::{routing::get, Router};
-use rustic_server::routes::{
-    charge_code_routes::get_charge_codes, time_entry_routes::get_time_entries,
+use axum::{
+    routing::{get, post, put, delete},
+    Router,
 };
+use rustic_server::routes::{charge_code_routes::*, time_entry_routes::*};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
 
@@ -17,8 +18,13 @@ async fn main() {
         .expect("Could not connect to the database");
 
     let app = Router::new()
-        .route("/time_entries", get(get_time_entries))
-        .route("/charge_codes", get(get_charge_codes))
+        .route("/time_entries", get(get_time_entries_request))
+        .route("/time_entry", post(create_time_entry_request))
+        .route("/time_entry/:id", put(update_time_entry_note_request))
+        .route("/time_entry/play/:id", put(play_time_entry_request))
+        .route("/time_entry/pause/:id", put(pause_time_entry_request))
+        .route("/time_entry/:id", delete(delete_time_entry_request))
+        .route("/charge_code", get(get_charge_codes))
         .layer(axum::extract::Extension(pool));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
