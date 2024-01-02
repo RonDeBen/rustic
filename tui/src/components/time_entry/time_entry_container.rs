@@ -2,8 +2,7 @@ use crate::{action::Action, components::Component, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-
-use super::time_entry::TimeEntry;
+use super::entry::TimeEntry;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TimeEntryContainer {

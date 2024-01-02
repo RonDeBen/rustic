@@ -5,8 +5,8 @@ pub mod cli;
 pub mod components;
 pub mod config;
 pub mod mode;
+pub mod shared;
 pub mod tui;
-pub mod utils;
 
 use clap::Parser;
 use cli::Cli;
@@ -14,7 +14,7 @@ use color_eyre::eyre::Result;
 
 use crate::{
     app::App,
-    utils::{initialize_logging, initialize_panic_handler},
+    shared::utils::{initialize_logging, initialize_panic_handler},
 };
 
 async fn tokio_main() -> Result<()> {

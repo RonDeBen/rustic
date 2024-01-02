@@ -2,21 +2,11 @@ use super::{
     notes::Notes, time_entry::time_entry_container::TimeEntryContainer, top_bar::layout::TopBar,
     Component, Frame,
 };
-use crate::{action::Action, config::Config};
+use crate::{action::Action, api_client::models::time_entry::TimeEntry, config::Config};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
 use tokio::sync::mpsc::UnboundedSender;
-
-//TODO: move me somewhere better
-#[derive(Default)]
-pub struct TimeEntry {
-    pub id: i32,
-    pub start_time: i64,
-    pub total_time: f64,
-    pub note: String,
-    pub day: i32,
-}
 
 #[derive(Default)]
 pub struct Home<'a> {
@@ -28,7 +18,7 @@ pub struct Home<'a> {
     time_entry_container: TimeEntryContainer,
     notes: Notes<'a>,
     // data
-    // time_entries: Vec<TimeEntry>,
+    _time_entries: Vec<TimeEntry>,
     // selected_entry_index: Option<usize>,
     // charge_codes: Vec<String>,
 }

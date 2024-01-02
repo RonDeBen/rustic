@@ -16,3 +16,4 @@ pub async fn get_time_entries(
 
     Ok(Json(records))
 }
+

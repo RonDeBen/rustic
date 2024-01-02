@@ -13,6 +13,7 @@ services:
       - db
     environment:
       RUST_LOG: "debug,sqlx=warn"
+      DATABASE_URL: "postgres://rustic_user:password@db:5432/rustic_db"
 
   db:
     build: ../db/db_init/

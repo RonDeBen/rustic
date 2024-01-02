@@ -31,8 +31,8 @@ pub struct Config {
 impl Config {
     pub fn new() -> Result<Self, config::ConfigError> {
         let default_config: Config = json5::from_str(CONFIG).unwrap();
-        let data_dir = crate::utils::get_data_dir();
-        let config_dir = crate::utils::get_config_dir();
+        let data_dir = crate::shared::utils::get_data_dir();
+        let config_dir = crate::shared::utils::get_config_dir();
         let mut builder = config::Config::builder()
             .set_default("_data_dir", data_dir.to_str().unwrap())?
             .set_default("_config_dir", config_dir.to_str().unwrap())?;

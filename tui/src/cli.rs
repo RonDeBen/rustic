@@ -1,7 +1,5 @@
-
 use clap::Parser;
-
-use crate::utils::version;
+use crate::shared::utils::version;
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]

@@ -7,9 +7,12 @@ use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or("postgres://rustic_user:password@localhost:5433/rustic_db".to_string());
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://rustic_user:password@db:5432/rustic_db")
+        .connect(&database_url)
         .await
         .expect("Could not connect to the database");
 
