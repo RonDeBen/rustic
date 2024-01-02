@@ -2,20 +2,15 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
-use rustic_server::routes::{charge_code_routes::*, time_entry_routes::*};
-use sqlx::postgres::PgPoolOptions;
+use rustic_server::{
+    routes::{charge_code_routes::*, time_entry_routes::*},
+    utils,
+};
 use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or("postgres://rustic_user:password@localhost:5433/rustic_db".to_string());
-
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Could not connect to the database");
+    let pool = utils::connections::get_connection().await;
 
     let app = Router::new()
         .route("/time_entries_by_day", get(get_time_entries_by_day))

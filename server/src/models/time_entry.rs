@@ -33,3 +33,9 @@ impl Day {
         }
     }
 }
+
+impl From<Day> for i16 {
+    fn from(value: Day) -> i16 {
+        value as i16
+    }
+}
