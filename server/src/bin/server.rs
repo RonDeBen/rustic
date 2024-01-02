@@ -25,7 +25,7 @@ async fn main() {
         .route("/time_entry/play/:id", put(play_time_entry_request))
         .route("/time_entry/pause/:id", put(pause_time_entry_request))
         .route("/time_entry/:id", delete(delete_time_entry_request))
-        .route("/charge_code", get(get_charge_codes))
+        .route("/charge_codes", get(get_charge_codes))
         .layer(axum::extract::Extension(pool));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));

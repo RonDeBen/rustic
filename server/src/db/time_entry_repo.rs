@@ -43,19 +43,17 @@ pub async fn fetch_time_entry_by_id(pool: &PgPool, id: i32) -> Result<TimeEntry,
 }
 
 pub async fn create_time_entry(pool: &PgPool, day: Day) -> Result<TimeEntry, sqlx::Error> {
-    let tx = pool.begin().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
         "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day)
          VALUES ($1, $2, $3, $4) RETURNING *",
     )
-    .bind(0.0)
+    .bind(None::<NaiveDateTime>)
     .bind(0.0)
     .bind("")
-    .bind(day as i32)
+    .bind(day as i16)
     .fetch_one(pool)
     .await?;
 
-    tx.commit().await?;
     Ok(time_entry)
 }
 

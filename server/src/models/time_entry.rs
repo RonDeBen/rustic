@@ -4,14 +4,14 @@ use serde::Serialize;
 #[derive(Serialize, sqlx::FromRow)]
 pub struct TimeEntry {
     pub id: i32,
-    pub start_time: NaiveDateTime,
+    pub start_time: Option<NaiveDateTime>,
     pub total_time: i64, // milliseconds
     pub note: String,
     pub day: Day,
 }
 
 #[derive(Debug, Clone, Copy, sqlx::Type, Serialize, Eq, Hash, PartialEq)]
-#[repr(i8)]
+#[repr(i16)]
 pub enum Day {
     Monday = 0,
     Tuesday = 1,

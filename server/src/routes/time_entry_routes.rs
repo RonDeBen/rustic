@@ -79,8 +79,13 @@ pub async fn pause_time_entry_request(
     pool: Extension<sqlx::PgPool>,
 ) -> Result<Json<TimeEntry>> {
     let entry = fetch_time_entry_by_id(&pool, params.id).await?;
-    let end_time: NaiveDateTime = Utc::now().naive_utc();
-    let elapsed_time = (end_time - entry.start_time).num_milliseconds();
+    let elapsed_time = match entry.start_time {
+        Some(start_time) => {
+            let end_time: NaiveDateTime = Utc::now().naive_utc();
+            (end_time - start_time).num_milliseconds()
+        }
+        None => 0, // timer was "played" before it was "paused"
+    };
     let entry = pause_time_entry(&pool, params.id, elapsed_time).await?;
 
     Ok(Json(entry))

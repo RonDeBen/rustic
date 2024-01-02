@@ -2,8 +2,8 @@ CREATE schema IF NOT EXISTS time_tracking;
 
 CREATE TABLE time_tracking.time_entries (
     id SERIAL PRIMARY KEY,
-    start_time TIMESTAMP,
-    total_time DOUBLE PRECISION,
+    start_time TIMESTAMP NULL,
+    total_time BIGINT,
     note TEXT,
     day SMALLINT
 );
