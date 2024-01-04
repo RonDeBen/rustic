@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::db::time_entry_repo::update_time_entry_note;
+use crate::services::time_entry_service::{switch_to_timer, pause_timer};
 use crate::utils::error::Result;
 use crate::{
     db::time_entry_repo::*,
@@ -68,9 +69,7 @@ pub async fn play_time_entry_request(
     Path(params): Path<IdPath>,
     pool: Extension<sqlx::PgPool>,
 ) -> Result<Json<TimeEntry>> {
-    let start_time: NaiveDateTime = Utc::now().naive_utc();
-    let entry = play_time_entry(&*pool, params.id, start_time).await?;
-
+    let entry = switch_to_timer(&*pool, params.id).await?;
     Ok(Json(entry))
 }
 
@@ -79,16 +78,8 @@ pub async fn pause_time_entry_request(
     pool: Extension<sqlx::PgPool>,
 ) -> Result<Json<TimeEntry>> {
     let entry = fetch_time_entry_by_id(&*pool, params.id).await?;
-    let elapsed_time = match entry.start_time {
-        Some(start_time) => {
-            let end_time: NaiveDateTime = Utc::now().naive_utc();
-            (end_time - start_time).num_milliseconds()
-        }
-        None => 0, // timer was "played" before it was "paused"
-    };
-    let entry = pause_time_entry(&*pool, params.id, elapsed_time).await?;
-
-    Ok(Json(entry))
+    let paused_entry = pause_timer(&*pool, entry).await?;
+    Ok(Json(paused_entry))
 }
 
 pub async fn delete_time_entry_request(

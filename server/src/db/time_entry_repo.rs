@@ -15,6 +15,18 @@ where
     .await
 }
 
+pub async fn fetch_all_running_timers<'a, A>(conn: A) -> Result<Vec<TimeEntry>, sqlx::Error>
+where
+    A: Acquire<'a, Database = Postgres>,
+{
+    let mut pool = conn.acquire().await?;
+    sqlx::query_as::<_, TimeEntry>(
+        "SELECT * FROM time_tracking.time_entries WHERE start_time IS NOT NULL",
+    )
+    .fetch_all(&mut *pool)
+    .await
+}
+
 pub fn organize_time_entries_by_day(entries: Vec<TimeEntry>) -> HashMap<Day, Vec<TimeEntry>> {
     let mut map: HashMap<Day, Vec<TimeEntry>> = HashMap::new();
 
@@ -117,16 +129,16 @@ where
 pub async fn pause_time_entry<'a, A>(
     conn: A,
     id: i32,
-    total_time: i64,
+    elapsed_time: i64,
 ) -> Result<TimeEntry, sqlx::Error>
 where
     A: Acquire<'a, Database = Postgres>,
 {
     let mut pool = conn.acquire().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
-        "UPDATE time_tracking.time_entries SET total_time = $1 WHERE id = $2 RETURNING *",
+        "UPDATE time_tracking.time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2 RETURNING *",
     )
-    .bind(total_time)
+    .bind(elapsed_time)
     .bind(id)
     .fetch_one(&mut *pool)
     .await?;
@@ -147,8 +159,6 @@ where
     Ok(())
 }
 
-// NOTE: you'll need a db connection for these
-// they'll be integration tests
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
@@ -231,13 +241,48 @@ mod tests {
 
         let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        let _ = play_time_entry(&mut tx, entry.id, start_time).await.unwrap();
+        let _ = play_time_entry(&mut tx, entry.id, start_time)
+            .await
+            .unwrap();
         let ten_min_millis = 600000;
         let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
             .await
             .unwrap();
 
         assert_eq!(paused_entry.total_time, ten_min_millis);
+
+        tx.rollback().await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn pausing_adds_to_toal_time() {
+        let pool = get_connection().await;
+        let mut tx = pool.begin().await.unwrap();
+
+        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let start_time: NaiveDateTime = Utc::now().naive_utc();
+        let _ = play_time_entry(&mut tx, entry.id, start_time)
+            .await
+            .unwrap();
+        let ten_min_millis = 600000;
+        let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
+            .await
+            .unwrap();
+
+        // gets first 10 millis
+        assert_eq!(paused_entry.total_time, ten_min_millis);
+
+        let start_time: NaiveDateTime = Utc::now().naive_utc();
+        let _ = play_time_entry(&mut tx, entry.id, start_time)
+            .await
+            .unwrap();
+        let ten_min_millis = 600000;
+        let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
+            .await
+            .unwrap();
+
+        // should be 20 minutes later now
+        assert_eq!(paused_entry.total_time, 2 * ten_min_millis);
 
         tx.rollback().await.unwrap()
     }
@@ -271,4 +316,29 @@ mod tests {
 
         tx.rollback().await.unwrap()
     }
+
+    #[tokio::test]
+    async fn can_get_running_timers() {
+        let pool = get_connection().await;
+        let mut tx = pool.begin().await.unwrap();
+
+        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let _entry2 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let _entry3 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+
+        let start_time: NaiveDateTime = Utc::now().naive_utc();
+        let started_timer = play_time_entry(&mut tx, entry.id, start_time)
+            .await
+            .unwrap();
+
+        let running_timers = fetch_all_running_timers(&mut tx).await.unwrap();
+
+        assert_eq!(running_timers.len(), 1);
+        assert_eq!(started_timer.id, running_timers.first().unwrap().id);
+
+        tx.rollback().await.unwrap()
+    }
+
+    // TODO: make a test for stopping all other timers
+    // and update the code to make that pass
 }
