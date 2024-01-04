@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use crate::db::time_entry_repo::update_time_entry_note;
-use crate::services::time_entry_service::{switch_to_timer, pause_timer};
+use crate::services::time_entry_service::{pause_timer, switch_to_timer};
 use crate::utils::error::Result;
 use crate::{
     db::time_entry_repo::*,
@@ -12,8 +10,8 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use chrono::{NaiveDateTime, Utc};
 use serde::Deserialize;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct IdPath {
@@ -69,7 +67,7 @@ pub async fn play_time_entry_request(
     Path(params): Path<IdPath>,
     pool: Extension<sqlx::PgPool>,
 ) -> Result<Json<TimeEntry>> {
-    let entry = switch_to_timer(&*pool, params.id).await?;
+    let entry = switch_to_timer(&pool, params.id).await?;
     Ok(Json(entry))
 }
 
@@ -78,7 +76,7 @@ pub async fn pause_time_entry_request(
     pool: Extension<sqlx::PgPool>,
 ) -> Result<Json<TimeEntry>> {
     let entry = fetch_time_entry_by_id(&*pool, params.id).await?;
-    let paused_entry = pause_timer(&*pool, entry).await?;
+    let paused_entry = pause_timer(&pool, entry).await?;
     Ok(Json(paused_entry))
 }
 

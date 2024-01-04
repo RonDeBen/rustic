@@ -1,29 +1,27 @@
 use crate::models::time_entry::{Day, TimeEntry};
 use chrono::NaiveDateTime;
-use sqlx::{Acquire, Postgres};
+use sqlx::{Acquire, Executor, Postgres};
 use std::collections::HashMap;
 
-pub async fn fetch_all_time_entries<'a, A>(conn: A) -> Result<Vec<TimeEntry>, sqlx::Error>
+pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntry>, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     sqlx::query_as::<_, TimeEntry>(
         "SELECT * FROM time_tracking.time_entries ORDER BY day, start_time",
     )
-    .fetch_all(&mut *pool)
+    .fetch_all(exec)
     .await
 }
 
-pub async fn fetch_all_running_timers<'a, A>(conn: A) -> Result<Vec<TimeEntry>, sqlx::Error>
+pub async fn fetch_all_running_timers<'e, E>(exec: E) -> Result<Vec<TimeEntry>, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     sqlx::query_as::<_, TimeEntry>(
         "SELECT * FROM time_tracking.time_entries WHERE start_time IS NOT NULL",
     )
-    .fetch_all(&mut *pool)
+    .fetch_all(exec)
     .await
 }
 
@@ -37,41 +35,37 @@ pub fn organize_time_entries_by_day(entries: Vec<TimeEntry>) -> HashMap<Day, Vec
     map
 }
 
-pub async fn fetch_time_entries_for_day<'a, A>(
-    conn: A,
+pub async fn fetch_time_entries_for_day<'e, E>(
+    exec: E,
     day: i16,
 ) -> Result<Vec<TimeEntry>, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
-
     sqlx::query_as::<_, TimeEntry>(
         "SELECT id, start_time, total_time, note, day FROM time_tracking.time_entries WHERE day = $1"
     )
     .bind(day)
-    .fetch_all(&mut *pool)
+    .fetch_all(exec)
     .await
 }
 
-pub async fn fetch_time_entry_by_id<'a, A>(conn: A, id: i32) -> Result<TimeEntry, sqlx::Error>
+pub async fn fetch_time_entry_by_id<'e, E>(exec: E, id: i32) -> Result<TimeEntry, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     sqlx::query_as::<_, TimeEntry>(
         "SELECT id, start_time, total_time, note, day FROM time_tracking.time_entries WHERE id = $1"
     )
     .bind(id)
-    .fetch_one(&mut *pool)
+    .fetch_one(exec)
     .await
 }
 
-pub async fn create_time_entry<'a, A>(conn: A, day: Day) -> Result<TimeEntry, sqlx::Error>
+pub async fn create_time_entry<'e, E>(exec: E, day: Day) -> Result<TimeEntry, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
         "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day)
          VALUES ($1, $2, $3, $4) RETURNING *",
@@ -80,80 +74,76 @@ where
     .bind(0.0)
     .bind("")
     .bind(day as i16)
-    .fetch_one(&mut *pool)
+    .fetch_one(exec)
     .await?;
 
     Ok(time_entry)
 }
 
-pub async fn update_time_entry_note<'a, A>(
-    conn: A,
+pub async fn update_time_entry_note<'e, E>(
+    exec: E,
     id: i32,
     new_note: String,
 ) -> Result<TimeEntry, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
         "UPDATE time_tracking.time_entries SET note = $1 WHERE id = $2 RETURNING *",
     )
     .bind(new_note)
     .bind(id)
-    .fetch_one(&mut *pool)
+    .fetch_one(exec)
     .await?;
 
     Ok(time_entry)
 }
 
-pub async fn play_time_entry<'a, A>(
-    conn: A,
+pub async fn play_time_entry<'e, E>(
+    exec: E,
     id: i32,
     start_time: NaiveDateTime,
 ) -> Result<TimeEntry, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
         "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING *",
     )
     .bind(start_time)
     .bind(id)
-    .fetch_one(&mut *pool)
+    .fetch_one(exec)
     .await?;
 
     Ok(time_entry)
 }
 
-pub async fn pause_time_entry<'a, A>(
-    conn: A,
+pub async fn pause_time_entry<'e, E>(
+    exec: E,
     id: i32,
     elapsed_time: i64,
 ) -> Result<TimeEntry, sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     let time_entry = sqlx::query_as::<_, TimeEntry>(
         "UPDATE time_tracking.time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2 RETURNING *",
     )
     .bind(elapsed_time)
     .bind(id)
-    .fetch_one(&mut *pool)
+    .fetch_one(exec)
     .await?;
 
     Ok(time_entry)
 }
 
-pub async fn delete_time_entry<'a, A>(conn: A, id: i32) -> Result<(), sqlx::Error>
+pub async fn delete_time_entry<'e, E>(exec: E, id: i32) -> Result<(), sqlx::Error>
 where
-    A: Acquire<'a, Database = Postgres>,
+    E: Executor<'e, Database = Postgres>,
 {
-    let mut pool = conn.acquire().await?;
     sqlx::query("DELETE FROM time_tracking.time_entries WHERE id = $1")
         .bind(id)
-        .execute(&mut *pool)
+        .execute(exec)
         .await?;
 
     Ok(())
@@ -171,12 +161,12 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let start_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
-        let _entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let end_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let _entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
@@ -192,10 +182,10 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let _entry_monday_1 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let _entry_monday_2 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let _entry_tuesday_1 = create_time_entry(&mut tx, Day::Tuesday).await.unwrap();
-        let monday_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let _entry_monday_1 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let _entry_monday_2 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let _entry_tuesday_1 = create_time_entry(&mut *tx, Day::Tuesday).await.unwrap();
+        let monday_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
@@ -210,8 +200,8 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let found_entry = fetch_time_entry_by_id(&mut tx, entry.id).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let found_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
 
         assert_eq!(entry.id, found_entry.id);
 
@@ -223,8 +213,8 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let updated_entry = update_time_entry_note(&mut tx, entry.id, "new note".to_string())
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let updated_entry = update_time_entry_note(&mut *tx, entry.id, "new note".to_string())
             .await
             .unwrap();
 
@@ -239,13 +229,13 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        let _ = play_time_entry(&mut tx, entry.id, start_time)
+        let _ = play_time_entry(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
-        let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
+        let paused_entry = pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
             .unwrap();
 
@@ -259,13 +249,13 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        let _ = play_time_entry(&mut tx, entry.id, start_time)
+        let _ = play_time_entry(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
-        let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
+        let paused_entry = pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
             .unwrap();
 
@@ -273,11 +263,11 @@ mod tests {
         assert_eq!(paused_entry.total_time, ten_min_millis);
 
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        let _ = play_time_entry(&mut tx, entry.id, start_time)
+        let _ = play_time_entry(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
-        let paused_entry = pause_time_entry(&mut tx, entry.id, ten_min_millis)
+        let paused_entry = pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
             .unwrap();
 
@@ -292,12 +282,12 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let start_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let end_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
@@ -305,9 +295,9 @@ mod tests {
         assert_eq!(start_count, 0);
         assert_eq!(end_count, 1);
 
-        delete_time_entry(&mut tx, entry.id).await.unwrap();
+        delete_time_entry(&mut *tx, entry.id).await.unwrap();
 
-        let after_delete_count = fetch_time_entries_for_day(&mut tx, Day::Monday.into())
+        let after_delete_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
             .unwrap()
             .len();
@@ -322,23 +312,20 @@ mod tests {
         let pool = get_connection().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let _entry2 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
-        let _entry3 = create_time_entry(&mut tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let _entry2 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let _entry3 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
 
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        let started_timer = play_time_entry(&mut tx, entry.id, start_time)
+        let started_timer = play_time_entry(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
 
-        let running_timers = fetch_all_running_timers(&mut tx).await.unwrap();
+        let running_timers = fetch_all_running_timers(&mut *tx).await.unwrap();
 
         assert_eq!(running_timers.len(), 1);
         assert_eq!(started_timer.id, running_timers.first().unwrap().id);
 
         tx.rollback().await.unwrap()
     }
-
-    // TODO: make a test for stopping all other timers
-    // and update the code to make that pass
 }
