@@ -1,10 +1,15 @@
-use serde::{Serialize, Deserialize};
+use serde::Deserialize;
+use super::day::Day;
 
-#[derive(Serialize, Deserialize)]
-pub struct TimeEntry {
+#[derive(Deserialize)]
+pub struct TimeEntryVM {
+    // start_time shouldn't be needed by the TUI
     pub id: i32,
-    pub start_time: i64,
-    pub total_time: f64,
+    pub total_time: i64,
     pub note: String,
-    pub day: i32,
+    pub day: Day,
+    //TODO:
+    pub is_active: bool,
+    pub charge_code: String,
 }
+

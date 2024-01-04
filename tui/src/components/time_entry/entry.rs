@@ -1,7 +1,9 @@
-use crate::{tui::Frame, components::Component};
+use crate::{components::Component, tui::Frame};
 use chrono::Duration;
 use color_eyre::eyre::Result;
 use ratatui::{prelude::*, widgets::*};
+
+use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimeEntry {
@@ -9,6 +11,17 @@ pub struct TimeEntry {
     pub elapsed_time: Duration,
     pub is_active: bool,
     pub is_selected: bool,
+}
+
+impl From<&ApiTimeEntry> for TimeEntry {
+    fn from(value: &ApiTimeEntry) -> Self {
+        Self {
+            charge_code: "TODO".to_string(),
+            elapsed_time: Duration::milliseconds(value.total_time),
+            is_active: value.is_active,
+            is_selected: false,
+        }
+    }
 }
 
 impl Default for TimeEntry {

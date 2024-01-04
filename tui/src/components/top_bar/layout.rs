@@ -8,7 +8,7 @@ use ratatui::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TopBar {
     weekday_selector: WeekdaySelector,
     mode_selector: ModeSelector,

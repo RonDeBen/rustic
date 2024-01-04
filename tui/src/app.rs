@@ -4,7 +4,8 @@ use ratatui::prelude::Rect;
 use tokio::sync::mpsc;
 
 use crate::{
-    action::Action,
+    action::{UIAct::*, Action},
+    api_client::ApiClient,
     components::{home::Home, Component},
     config::Config,
     mode::Mode,
@@ -23,9 +24,9 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(tick_rate: f64, frame_rate: f64) -> Result<Self> {
-        let home = Home::new();
-        // let fps = FpsCounter::default();
+    pub async fn new(tick_rate: f64, frame_rate: f64, api_client: &ApiClient) -> Result<Self> {
+        let starting_state = api_client.get_full_state().await?;
+        let home = Home::new(starting_state);
         let config = Config::new()?;
         let mode = Mode::Crud;
         Ok(Self {
@@ -64,10 +65,10 @@ impl App {
         loop {
             if let Some(e) = tui.next().await {
                 match e {
-                    tui::Event::Quit => action_tx.send(Action::Quit)?,
-                    tui::Event::Tick => action_tx.send(Action::Tick)?,
-                    tui::Event::Render => action_tx.send(Action::Render)?,
-                    tui::Event::Resize(x, y) => action_tx.send(Action::Resize(x, y))?,
+                    tui::Event::Quit => action_tx.send(Action::UI(Quit))?,
+                    tui::Event::Tick => action_tx.send(Action::UI(Tick))?,
+                    tui::Event::Render => action_tx.send(Action::UI(Render))?,
+                    tui::Event::Resize(x, y) => action_tx.send(Action::UI(Resize(x, y)))?,
                     tui::Event::Key(key) => {
                         if let Some(keymap) = self.config.keybindings.get(&self.mode) {
                             if let Some(action) = keymap.get(&vec![key]) {
@@ -96,36 +97,36 @@ impl App {
             }
 
             while let Ok(action) = action_rx.try_recv() {
-                if action != Action::Tick && action != Action::Render {
+                if action != Action::UI(Tick) && action != Action::UI(Render) {
                     log::debug!("{action:?}");
                 }
                 match action {
-                    Action::Tick => {
+                    Action::UI(Tick) => {
                         self.last_tick_key_events.drain(..);
                     }
-                    Action::Quit => self.should_quit = true,
-                    Action::Suspend => self.should_suspend = true,
-                    Action::Resume => self.should_suspend = false,
-                    Action::Resize(w, h) => {
+                    Action::UI(Quit) => self.should_quit = true,
+                    Action::UI(Suspend) => self.should_suspend = true,
+                    Action::UI(Resume) => self.should_suspend = false,
+                    Action::UI(Resize(w, h)) => {
                         tui.resize(Rect::new(0, 0, w, h))?;
                         tui.draw(|f| {
                             for component in self.components.iter_mut() {
                                 let r = component.draw(f, f.size());
                                 if let Err(e) = r {
                                     action_tx
-                                        .send(Action::Error(format!("Failed to draw: {:?}", e)))
+                                        .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
                                         .unwrap();
                                 }
                             }
                         })?;
                     }
-                    Action::Render => {
+                    Action::UI(Render) => {
                         tui.draw(|f| {
                             for component in self.components.iter_mut() {
                                 let r = component.draw(f, f.size());
                                 if let Err(e) = r {
                                     action_tx
-                                        .send(Action::Error(format!("Failed to draw: {:?}", e)))
+                                        .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
                                         .unwrap();
                                 }
                             }
@@ -141,7 +142,7 @@ impl App {
             }
             if self.should_suspend {
                 tui.suspend()?;
-                action_tx.send(Action::Resume)?;
+                action_tx.send(Action::UI(Resume))?;
                 tui = tui::Tui::new()?
                     .tick_rate(self.tick_rate)
                     .frame_rate(self.frame_rate);

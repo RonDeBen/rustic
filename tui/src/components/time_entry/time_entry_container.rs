@@ -1,8 +1,8 @@
+use super::entry::TimeEntry;
 use crate::{action::Action, components::Component, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-use super::entry::TimeEntry;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct TimeEntryContainer {
@@ -13,6 +13,10 @@ pub struct TimeEntryContainer {
 impl TimeEntryContainer {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn set_time_entries(&mut self, entries: Vec<TimeEntry>) {
+        self.entries = entries;
     }
 }
 
