@@ -6,7 +6,7 @@ use derive_deref::{Deref, DerefMut};
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 
-use crate::{action::Action, mode::Mode};
+use crate::{action::{Action, UIAct}, mode::Mode};
 
 const CONFIG: &str = include_str!("../.config/config.json5");
 
@@ -74,7 +74,7 @@ impl Config {
             for (style_key, style) in default_styles.iter() {
                 user_styles
                     .entry(style_key.clone())
-                    .or_insert_with(|| style.clone());
+                    .or_insert_with(|| *style);
             }
         }
 
@@ -90,22 +90,46 @@ impl<'de> Deserialize<'de> for KeyBindings {
     where
         D: Deserializer<'de>,
     {
-        let parsed_map = HashMap::<Mode, HashMap<String, Action>>::deserialize(deserializer)?;
+        let parsed_map = HashMap::<Mode, HashMap<String, String>>::deserialize(deserializer)?;
 
         let keybindings = parsed_map
             .into_iter()
             .map(|(mode, inner_map)| {
                 let converted_inner_map = inner_map
                     .into_iter()
-                    .map(|(key_str, cmd)| (parse_key_sequence(&key_str).unwrap(), cmd))
-                    .collect();
-                (mode, converted_inner_map)
+                    .map(|(key_str, action_str)| {
+                        // Parse the key sequence
+                        let keys = parse_key_sequence(&key_str).unwrap();
+
+                        // Parse the action string to Action enum
+                        let action = parse_action_string(&action_str);
+
+                        Ok((keys, action))
+                    })
+                    .collect::<Result<HashMap<_, _>, _>>()?;
+
+                Ok((mode, converted_inner_map))
             })
-            .collect();
+            .collect::<Result<HashMap<_, _>, _>>()?;
 
         Ok(KeyBindings(keybindings))
     }
 }
+
+// Helper function to parse action strings
+fn parse_action_string(action_str: &str) -> Action {
+    match action_str {
+        "Tick" => Action::UI(UIAct::Tick),
+        "Render" => Action::UI(UIAct::Tick),
+        "Suspend" => Action::UI(UIAct::Suspend),
+        "Resume" => Action::UI(UIAct::Resume),
+        "Refresh" => Action::UI(UIAct::Refresh),
+        "Help" => Action::UI(UIAct::Help),
+        "Quit" => Action::UI(UIAct::Quit),
+        _ => Action::UI(UIAct::Quit),
+    }
+}
+
 
 fn parse_key_event(raw: &str) -> Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
@@ -464,19 +488,19 @@ mod tests {
 
     // TODO: I took out the <q> to quit from the config
     // maybe update this test with something that stayed
-    // #[test]
-    // fn test_config() -> Result<()> {
-    //     let c = Config::new()?;
-    //     assert_eq!(
-    //         c.keybindings
-    //             .get(&Mode::Crud)
-    //             .unwrap()
-    //             .get(&parse_key_sequence("<q>").unwrap_or_default())
-    //             .unwrap(),
-    //         &Action::UI(UIAct::Quit)
-    //     );
-    //     Ok(())
-    // }
+    #[test]
+    fn test_config() -> Result<()> {
+        let c = Config::new()?;
+        assert_eq!(
+            c.keybindings
+                .get(&Mode::Crud)
+                .unwrap()
+                .get(&parse_key_sequence("<Ctrl-c>").unwrap_or_default())
+                .unwrap(),
+            &Action::UI(UIAct::Quit)
+        );
+        Ok(())
+    }
 
     #[test]
     fn test_simple_keys() {
