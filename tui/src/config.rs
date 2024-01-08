@@ -6,7 +6,10 @@ use derive_deref::{Deref, DerefMut};
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 
-use crate::{action::{Action, UIAct}, mode::Mode};
+use crate::{
+    action::{Action, UIAct},
+    mode::Mode,
+};
 
 const CONFIG: &str = include_str!("../.config/config.json5");
 
@@ -130,7 +133,6 @@ fn parse_action_string(action_str: &str) -> Action {
     }
 }
 
-
 fn parse_key_event(raw: &str) -> Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
     let (remaining, modifiers) = extract_modifiers(&raw_lower);
@@ -233,7 +235,7 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
             char = format!("f({c})");
             &char
         }
-        KeyCode::Char(c) if c == ' ' => "space",
+        KeyCode::Char(' ')  => "space",
         KeyCode::Char(c) => {
             char = c.to_string();
             &char

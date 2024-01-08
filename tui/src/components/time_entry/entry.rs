@@ -7,6 +7,7 @@ use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimeEntry {
+    pub id: i32,
     pub charge_code: String,
     pub elapsed_time: Duration,
     pub is_active: bool,
@@ -16,6 +17,7 @@ pub struct TimeEntry {
 impl From<&ApiTimeEntry> for TimeEntry {
     fn from(value: &ApiTimeEntry) -> Self {
         Self {
+            id: value.id,
             charge_code: "TODO".to_string(),
             elapsed_time: Duration::milliseconds(value.total_time),
             is_active: value.is_active,
@@ -27,6 +29,7 @@ impl From<&ApiTimeEntry> for TimeEntry {
 impl Default for TimeEntry {
     fn default() -> Self {
         Self {
+            id: -1,
             charge_code: "Project Mgmt".to_string(),
             elapsed_time: Duration::zero(),
             is_active: false,

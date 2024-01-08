@@ -4,10 +4,13 @@ use super::{
 };
 use crate::{
     action::{
-        Action, TTAct,
+        Action, ApiAct, TTAct,
         UIAct::{self, *},
     },
-    api_client::models::{day::Day, FullState},
+    api_client::{
+        models::{day::Day, FullState},
+        ApiResponse,
+    },
     config::Config,
 };
 use color_eyre::eyre::Result;
@@ -18,25 +21,50 @@ use tokio::sync::mpsc::UnboundedSender;
 pub struct Home<'a> {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
-    // components
     top_bar: TopBar,
     time_entry_container: TimeEntryContainer,
     notes: Notes<'a>,
-    // data
     full_state: FullState,
     current_day: Day,
 }
 
 impl Home<'_> {
     pub fn new(starting_state: FullState) -> Self {
+        let current_day = Day::get_current_day();
+        let current_entries = starting_state.get_time_entries_for_day(current_day);
+        let time_entry_container = TimeEntryContainer::new(current_entries, 0);
         Self {
             command_tx: None,
             config: Config::default(),
             top_bar: TopBar::default(),
-            time_entry_container: TimeEntryContainer::default(),
+            time_entry_container,
             notes: Notes::default(),
             full_state: starting_state,
-            current_day: Day::get_current_day(),
+            current_day,
+        }
+    }
+
+    fn handle_response(&mut self, respo: ApiResponse) {
+        match respo {
+            ApiResponse::FullState(state) => self.full_state = state,
+            ApiResponse::TimeEntryCreate(entry) => {
+                if let Some(entries) = self.full_state.time_entries.get_mut(&entry.day) {
+                    entries.push(entry);
+                }
+            }
+            ApiResponse::TimeEntryUpdate(entry) => {
+                // Find the vector of TimeEntryVMs for the given day.
+                if let Some(entries) = self.full_state.time_entries.get_mut(&entry.day) {
+                    // Iterate over the vector to find the entry with the matching id.
+                    for existing_entry in entries.iter_mut() {
+                        if existing_entry.id == entry.id {
+                            // Update the existing entry.
+                            *existing_entry = entry.clone();
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -72,6 +100,12 @@ impl Component for Home<'_> {
                 }
                 TTAct::UpdateNote(_new_note) => todo!(),
             },
+            Action::Api(api_action) => {
+                // only handle the responses here
+                if let ApiAct::Response(respo) = api_action {
+                    self.handle_response(respo)
+                }
+            }
         }
         Ok(None)
     }

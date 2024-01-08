@@ -1,6 +1,6 @@
-use serde::{Deserialize};
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Eq, Hash, PartialEq, Debug)]
 pub struct ChargeCode {
     pub id: i32,
     pub alias: String,

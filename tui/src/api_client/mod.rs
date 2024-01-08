@@ -1,12 +1,33 @@
 pub mod models;
 
-use reqwest::Client;
-
 use self::models::{time_entry::TimeEntryVM, FullState};
+use crate::action::{Action, ApiAct};
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use strum::Display;
+use tokio::sync::mpsc::UnboundedSender;
 
+#[derive(Clone)]
 pub struct ApiClient {
     client: Client,
     base_url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
+pub enum ApiRequest {
+    GetFullState,
+    CreateTimeEntry,
+    UpdateEntryNote { id: i32, note: String },
+    PlayEntry { id: i32 },
+    PauseEntry { id: i32 },
+    DeleteEntry { id: i32 },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
+pub enum ApiResponse {
+    FullState(FullState),
+    TimeEntryUpdate(TimeEntryVM),
+    TimeEntryCreate(TimeEntryVM),
 }
 
 impl ApiClient {
@@ -14,6 +35,89 @@ impl ApiClient {
         ApiClient {
             client: Client::new(),
             base_url,
+        }
+    }
+
+    pub async fn process_api_action(&self, action: &ApiAct, action_tx: &UnboundedSender<Action>) {
+        match self.process_api_action_inner(action, action_tx).await {
+            Ok(_x) => {}
+            // if we have reqwest errors, swallow them but send an error action
+            Err(error) => action_tx
+                .send(Action::Api(ApiAct::Error(format!(
+                    "Failed api request: {:?}",
+                    error
+                ))))
+                .unwrap(),
+        }
+    }
+
+    pub async fn process_api_action_inner(
+        &self,
+        action: &ApiAct,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<(), reqwest::Error> {
+        match action {
+            ApiAct::Request(request) => match request {
+                ApiRequest::GetFullState => {
+                    let rcv = self.get_full_state().await?;
+                    let response = ApiResponse::FullState(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::CreateTimeEntry => {
+                    let rcv = self.create_time_entry().await?;
+                    let response = ApiResponse::TimeEntryCreate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::UpdateEntryNote { id, note } => {
+                    let rcv = self.update_entry_note(*id, note.to_owned()).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::PlayEntry { id } => {
+                    let rcv = self.play_entry(*id).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::PauseEntry { id } => {
+                    let rcv = self.pause_entry(*id).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::DeleteEntry { id } => {
+                    self.delete_entry(*id).await?;
+                    Ok(())
+                }
+            },
+            ApiAct::Response(_response) => {
+                // intentionally left empty
+                // only handle the actions that want us to use the api_client here
+                // handle responses in the UI
+                Ok(())
+            }
+            ApiAct::Error(error) => {
+                action_tx
+                    .send(Action::Api(ApiAct::Error(format!(
+                        "Failed api request: {:?}",
+                        error
+                    ))))
+                    .unwrap();
+                Ok(())
+            }
         }
     }
 
@@ -76,8 +180,34 @@ impl ApiClient {
 
         match response.error_for_status() {
             Ok(_res) => Ok(()),
-            Err(err) => {
-                Err(err)
+            Err(err) => Err(err),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::api_client::ApiClient;
+
+    #[tokio::test]
+    async fn can_create_time_entry() {
+        let api_base_url =
+            std::env::var("API_BASE_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
+        let api_client = ApiClient::new(api_base_url);
+
+        // Call the function under test
+        let result = api_client.create_time_entry().await;
+
+        // Check the result and print the error if it exists
+        match result {
+            Ok(time_entry) => {
+                // If it's okay, you can optionally print the time entry or perform further checks
+                println!("Success: {:?}", time_entry);
+            }
+            Err(e) => {
+                // Print the error and assert false to make sure the test fails
+                eprintln!("Error occurred: {:?}", e);
+                panic!("unwrapped an error");
             }
         }
     }

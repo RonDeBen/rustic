@@ -1,7 +1,7 @@
-use serde::Deserialize;
 use super::day::Day;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Eq, Hash, PartialEq, Debug)]
 pub struct TimeEntryVM {
     // start_time shouldn't be needed by the TUI
     pub id: i32,
@@ -12,4 +12,3 @@ pub struct TimeEntryVM {
     pub is_active: bool,
     pub charge_code: String,
 }
-

@@ -1,10 +1,13 @@
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
-use tokio::sync::mpsc;
+use tokio::sync::mpsc::{self, UnboundedSender};
 
 use crate::{
-    action::{UIAct::*, Action},
+    action::{
+        Action,
+        UIAct::{self, *},
+    },
     api_client::ApiClient,
     components::{home::Home, Component},
     config::Config,
@@ -21,6 +24,7 @@ pub struct App {
     pub should_suspend: bool,
     pub mode: Mode,
     pub last_tick_key_events: Vec<KeyEvent>,
+    pub api_client: ApiClient,
 }
 
 impl App {
@@ -38,6 +42,7 @@ impl App {
             config,
             mode,
             last_tick_key_events: Vec::new(),
+            api_client: api_client.clone(),
         })
     }
 
@@ -100,39 +105,16 @@ impl App {
                 if action != Action::UI(Tick) && action != Action::UI(Render) {
                     log::debug!("{action:?}");
                 }
-                match action {
-                    Action::UI(Tick) => {
-                        self.last_tick_key_events.drain(..);
+                match &action {
+                    Action::UI(ui_act) => self.process_ui_action(ui_act, &mut tui, &action_tx)?,
+                    Action::TT(_tt_act) => {
+                        // processing TT actions, should not happen in this loop
                     }
-                    Action::UI(Quit) => self.should_quit = true,
-                    Action::UI(Suspend) => self.should_suspend = true,
-                    Action::UI(Resume) => self.should_suspend = false,
-                    Action::UI(Resize(w, h)) => {
-                        tui.resize(Rect::new(0, 0, w, h))?;
-                        tui.draw(|f| {
-                            for component in self.components.iter_mut() {
-                                let r = component.draw(f, f.size());
-                                if let Err(e) = r {
-                                    action_tx
-                                        .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
-                                        .unwrap();
-                                }
-                            }
-                        })?;
+                    Action::Api(api_act) => {
+                        self.api_client
+                            .process_api_action(api_act, &action_tx)
+                            .await
                     }
-                    Action::UI(Render) => {
-                        tui.draw(|f| {
-                            for component in self.components.iter_mut() {
-                                let r = component.draw(f, f.size());
-                                if let Err(e) = r {
-                                    action_tx
-                                        .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
-                                        .unwrap();
-                                }
-                            }
-                        })?;
-                    }
-                    _ => {}
                 }
                 for component in self.components.iter_mut() {
                     if let Some(action) = component.update(action.clone())? {
@@ -154,6 +136,49 @@ impl App {
             }
         }
         tui.exit()?;
+        Ok(())
+    }
+
+    fn process_ui_action(
+        &mut self,
+        action: &UIAct,
+        tui: &mut tui::Tui,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<()> {
+        match action {
+            UIAct::Tick => {
+                self.last_tick_key_events.drain(..);
+            }
+            UIAct::Quit => self.should_quit = true,
+            UIAct::Suspend => self.should_suspend = true,
+            UIAct::Resume => self.should_suspend = false,
+            UIAct::Resize(w, h) => {
+                tui.resize(Rect::new(0, 0, *w, *h))?;
+                tui.draw(|f| {
+                    for component in self.components.iter_mut() {
+                        let r = component.draw(f, f.size());
+                        if let Err(e) = r {
+                            action_tx
+                                .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
+                                .unwrap();
+                        }
+                    }
+                })?;
+            }
+            UIAct::Render => {
+                tui.draw(|f| {
+                    for component in self.components.iter_mut() {
+                        let r = component.draw(f, f.size());
+                        if let Err(e) = r {
+                            action_tx
+                                .send(Action::UI(Error(format!("Failed to draw: {:?}", e))))
+                                .unwrap();
+                        }
+                    }
+                })?;
+            }
+            _ => {}
+        }
         Ok(())
     }
 }

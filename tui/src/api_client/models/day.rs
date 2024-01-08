@@ -1,13 +1,14 @@
 use chrono::{Datelike, Utc, Weekday};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Eq, Hash, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, Copy, Eq, Hash, PartialEq, Debug, Default)]
 #[serde(from = "i16")]
 pub enum Day {
     Monday,
     Tuesday,
     Wednesday,
     Thursday,
+    #[default]
     Friday,
 }
 
@@ -35,11 +36,5 @@ impl Day {
             Weekday::Fri => Day::Friday,
             _ => Day::Friday,
         }
-    }
-}
-
-impl Default for Day{
-    fn default() -> Self {
-        Day::Friday
     }
 }
