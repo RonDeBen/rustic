@@ -16,8 +16,11 @@ pub struct WeekdaySelector {
 }
 
 impl WeekdaySelector {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(selected_day: Day) -> Self {
+        Self {
+            selected_day,
+            command_tx: None,
+        }
     }
 
     fn select_day(&mut self, day: Day) -> Result<()> {

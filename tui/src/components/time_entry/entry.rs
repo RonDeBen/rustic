@@ -54,8 +54,8 @@ impl TimeEntry {
 
     fn get_border_style(&self) -> Style {
         match self.is_selected {
-            true => Style::default().fg(Color::Cyan),
-            false => Style::default().fg(Color::Yellow),
+            true => Style::default().fg(Color::Yellow),
+            false => Style::default().fg(Color::DarkGray),
         }
         // if self.is_selected {
         //     Style::default().fg(Color::Cyan)

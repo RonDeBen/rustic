@@ -1,5 +1,5 @@
 use super::{mode_selector::ModeSelector, weekday_selector::WeekdaySelector};
-use crate::{action::Action, components::Component};
+use crate::{action::Action, api_client::models::day::Day, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
@@ -21,6 +21,13 @@ impl TopBar {
 
     fn is_mode_selector_event(&self, key: &KeyEvent) -> bool {
         matches!(key.code, KeyCode::Char('0') | KeyCode::Char('9'))
+    }
+
+    pub fn new(selected_day: Day) -> Self {
+        Self {
+            weekday_selector: WeekdaySelector::new(selected_day),
+            mode_selector: ModeSelector::default(),
+        }
     }
 }
 

@@ -36,7 +36,7 @@ impl Home<'_> {
         Self {
             command_tx: None,
             config: Config::default(),
-            top_bar: TopBar::default(),
+            top_bar: TopBar::new(current_day),
             time_entry_container,
             notes: Notes::default(),
             full_state: starting_state,

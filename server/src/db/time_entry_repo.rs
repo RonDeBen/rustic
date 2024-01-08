@@ -1,35 +1,35 @@
-use crate::models::time_entry::{Day, TimeEntry};
+use crate::models::time_entry::{Day, TimeEntryRaw, TimeEntryVM};
 use chrono::NaiveDateTime;
-use sqlx::{Acquire, Executor, Postgres};
+use sqlx::{Executor, Postgres};
 use std::collections::HashMap;
 
-pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntry>, sqlx::Error>
+pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query_as::<_, TimeEntry>(
+    sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT * FROM time_tracking.time_entries ORDER BY day, start_time",
     )
     .fetch_all(exec)
     .await
 }
 
-pub async fn fetch_all_running_timers<'e, E>(exec: E) -> Result<Vec<TimeEntry>, sqlx::Error>
+pub async fn fetch_all_running_timers<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query_as::<_, TimeEntry>(
+    sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT * FROM time_tracking.time_entries WHERE start_time IS NOT NULL",
     )
     .fetch_all(exec)
     .await
 }
 
-pub fn organize_time_entries_by_day(entries: Vec<TimeEntry>) -> HashMap<Day, Vec<TimeEntry>> {
-    let mut map: HashMap<Day, Vec<TimeEntry>> = HashMap::new();
+pub fn organize_time_entries_by_day(entries: Vec<TimeEntryRaw>) -> HashMap<Day, Vec<TimeEntryVM>> {
+    let mut map: HashMap<Day, Vec<TimeEntryVM>> = HashMap::new();
 
     for entry in entries {
-        map.entry(entry.day).or_default().push(entry);
+        map.entry(entry.day).or_default().push(entry.into());
     }
 
     map
@@ -38,11 +38,11 @@ pub fn organize_time_entries_by_day(entries: Vec<TimeEntry>) -> HashMap<Day, Vec
 pub async fn fetch_time_entries_for_day<'e, E>(
     exec: E,
     day: i16,
-) -> Result<Vec<TimeEntry>, sqlx::Error>
+) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query_as::<_, TimeEntry>(
+    sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT id, start_time, total_time, note, day FROM time_tracking.time_entries WHERE day = $1"
     )
     .bind(day)
@@ -50,11 +50,11 @@ where
     .await
 }
 
-pub async fn fetch_time_entry_by_id<'e, E>(exec: E, id: i32) -> Result<TimeEntry, sqlx::Error>
+pub async fn fetch_time_entry_by_id<'e, E>(exec: E, id: i32) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query_as::<_, TimeEntry>(
+    sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT id, start_time, total_time, note, day FROM time_tracking.time_entries WHERE id = $1"
     )
     .bind(id)
@@ -62,11 +62,11 @@ where
     .await
 }
 
-pub async fn create_time_entry<'e, E>(exec: E, day: Day) -> Result<TimeEntry, sqlx::Error>
+pub async fn create_time_entry<'e, E>(exec: E, day: Day) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    let time_entry = sqlx::query_as::<_, TimeEntry>(
+    let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
         "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day)
          VALUES ($1, $2, $3, $4) RETURNING *",
     )
@@ -84,11 +84,11 @@ pub async fn update_time_entry_note<'e, E>(
     exec: E,
     id: i32,
     new_note: String,
-) -> Result<TimeEntry, sqlx::Error>
+) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    let time_entry = sqlx::query_as::<_, TimeEntry>(
+    let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
         "UPDATE time_tracking.time_entries SET note = $1 WHERE id = $2 RETURNING *",
     )
     .bind(new_note)
@@ -103,11 +103,11 @@ pub async fn play_time_entry<'e, E>(
     exec: E,
     id: i32,
     start_time: NaiveDateTime,
-) -> Result<TimeEntry, sqlx::Error>
+) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    let time_entry = sqlx::query_as::<_, TimeEntry>(
+    let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
         "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING *",
     )
     .bind(start_time)
@@ -122,11 +122,11 @@ pub async fn pause_time_entry<'e, E>(
     exec: E,
     id: i32,
     elapsed_time: i64,
-) -> Result<TimeEntry, sqlx::Error>
+) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    let time_entry = sqlx::query_as::<_, TimeEntry>(
+    let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
         "UPDATE time_tracking.time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2 RETURNING *",
     )
     .bind(elapsed_time)

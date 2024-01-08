@@ -1,8 +1,9 @@
 use chrono::{Datelike, NaiveDateTime, Utc, Weekday};
 use serde::Serialize;
+use serde_repr::Serialize_repr;
 
-#[derive(Serialize, sqlx::FromRow)]
-pub struct TimeEntry {
+#[derive(sqlx::FromRow)]
+pub struct TimeEntryRaw {
     pub id: i32,
     pub start_time: Option<NaiveDateTime>,
     pub total_time: i64, // milliseconds
@@ -10,7 +11,35 @@ pub struct TimeEntry {
     pub day: Day,
 }
 
-#[derive(Debug, Clone, Copy, sqlx::Type, Serialize, Eq, Hash, PartialEq)]
+#[derive(Serialize)]
+pub struct TimeEntryVM {
+    pub id: i32,
+    pub total_time: i64, // milliseconds
+    pub note: String,
+    pub day: Day,
+    pub is_active: bool,
+}
+
+impl From<TimeEntryRaw> for TimeEntryVM {
+    fn from(value: TimeEntryRaw) -> Self {
+        Self {
+            id: value.id,
+            total_time: value.total_time,
+            note: value.note.to_owned(),
+            day: value.day,
+            is_active: value.start_time.is_some(),
+        }
+    }
+}
+
+impl From<&TimeEntryRaw> for TimeEntryVM {
+    fn from(value: &TimeEntryRaw) -> Self {
+        value.into()
+    }
+}
+
+//Serialize_repr makes this serialize as the varient number, instead of a string for the day
+#[derive(Debug, Clone, Copy, sqlx::Type, Eq, Hash, PartialEq, Serialize_repr)]
 #[repr(i16)]
 pub enum Day {
     Monday = 0,

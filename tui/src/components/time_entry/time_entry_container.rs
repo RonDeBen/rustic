@@ -23,6 +23,10 @@ impl TimeEntryContainer {
     pub fn set_time_entries(&mut self, entries: Vec<TimeEntry>) {
         self.entries = entries;
     }
+
+    pub fn get_selected_entry(&self) -> Option<&TimeEntry> {
+        self.entries.get(self.selected_index)
+    }
 }
 
 impl Component for TimeEntryContainer {
@@ -35,11 +39,15 @@ impl Component for TimeEntryContainer {
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                self.selected_index =
-                    (self.selected_index + self.entries.len() - 1) % self.entries.len();
+                if !self.entries.is_empty() {
+                    self.selected_index =
+                        (self.selected_index + self.entries.len() - 1) % self.entries.len();
+                }
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                self.selected_index = (self.selected_index + 1) % self.entries.len();
+                if !self.entries.is_empty() {
+                    self.selected_index = (self.selected_index + 1) % self.entries.len();
+                }
             }
             KeyCode::Char(' ') => {
                 // Toggle the timer for the selected entry
@@ -75,6 +83,11 @@ impl Component for TimeEntryContainer {
             }
             KeyCode::Char('t') => {
                 //TODO: modify the timer on this entry
+            }
+            KeyCode::Char('d') => {
+                if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
+                    tx.send(Action::api_request_action(DeleteEntry { id: entry.id }))?;
+                }
             }
             _ => {}
         }
