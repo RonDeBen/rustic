@@ -54,22 +54,22 @@ impl TimeEntry {
 
     fn get_border_style(&self) -> Style {
         match self.is_selected {
-            true => Style::default().fg(Color::Cyan),
-            false => Style::default().fg(Color::Yellow),
+            true => Style::default().dim().fg(Color::Cyan),
+            false => Style::default().dim().fg(Color::Gray),
         }
         // if self.is_selected {
-        //     Style::default().fg(Color::Cyan)
+        //     Style::default().dim().fg(Color::Cyan)
         // } else if self.is_active {
-        //     Style::default().fg(Color::Green)
+        //     Style::default().dim().fg(Color::Green)
         // } else {
-        //     Style::default().fg(Color::White)
+        //     Style::default().dim().fg(Color::White)
         // }
     }
 }
 
 impl Component for TimeEntry {
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
-        let play_pause_symbol = if self.is_active { "⏸" } else { "▶" };
+        let play_pause_symbol = if self.is_active { "⏸" } else { "⏵" };
         let elapsed_time_str = self.format_duration();
 
         // Create a Block for the entire TimeEntry with the border style
@@ -97,16 +97,16 @@ impl Component for TimeEntry {
         // Render play/pause button
         let button_text = Text::styled(
             play_pause_symbol,
-            Style::default().add_modifier(Modifier::BOLD),
+            Style::default().dim().add_modifier(Modifier::BOLD),
         );
         f.render_widget(Paragraph::new(button_text), chunks[0]);
 
         // Render elapsed time
-        let time_text = Text::styled(elapsed_time_str, Style::default());
+        let time_text = Text::styled(elapsed_time_str, Style::default().dim());
         f.render_widget(Paragraph::new(time_text), chunks[1]);
 
         // Render charge code
-        let charge_code_text = Text::styled(&self.charge_code, Style::default());
+        let charge_code_text = Text::styled(&self.charge_code, Style::default().dim());
         f.render_widget(Paragraph::new(charge_code_text), chunks[2]);
 
         Ok(())

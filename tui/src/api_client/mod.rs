@@ -43,7 +43,7 @@ impl ApiClient {
             Ok(_x) => {}
             // if we have reqwest errors, swallow them but send an error action
             Err(error) => action_tx
-                .send(Action::Api(ApiAct::Error(format!(
+                .send(Action::UI(crate::action::UIAct::Error(format!(
                     "Failed api request: {:?}",
                     error
                 ))))

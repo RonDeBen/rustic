@@ -44,6 +44,11 @@ impl Home<'_> {
         }
     }
 
+    fn set_time_entries(&mut self) {
+        self.time_entry_container
+            .set_time_entries(self.full_state.get_time_entries_for_day(self.current_day));
+    }
+
     fn handle_response(&mut self, respo: ApiResponse) {
         match respo {
             ApiResponse::FullState(state) => self.full_state = state,
@@ -66,6 +71,7 @@ impl Home<'_> {
                 }
             }
         }
+        self.set_time_entries();
     }
 }
 
@@ -94,9 +100,8 @@ impl Component for Home<'_> {
             },
             Action::TT(tt_action) => match tt_action {
                 TTAct::ChangeDay(day) => {
-                    self.time_entry_container
-                        .set_time_entries(self.full_state.get_time_entries_for_day(day));
                     self.current_day = day;
+                    self.set_time_entries();
                 }
                 TTAct::UpdateNote(_new_note) => todo!(),
             },

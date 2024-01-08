@@ -1,10 +1,5 @@
 use super::entry::TimeEntry;
-use crate::{
-    action::Action,
-    api_client::ApiRequest::*,
-    components::Component,
-    tui::Frame,
-};
+use crate::{action::Action, api_client::ApiRequest::*, components::Component, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
@@ -40,7 +35,8 @@ impl Component for TimeEntryContainer {
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
-                self.selected_index = (self.selected_index - 1) % self.entries.len();
+                self.selected_index =
+                    (self.selected_index + self.entries.len() - 1) % self.entries.len();
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 self.selected_index = (self.selected_index + 1) % self.entries.len();
