@@ -52,9 +52,9 @@ impl Home<'_> {
     fn handle_response(&mut self, respo: ApiResponse) {
         match respo {
             ApiResponse::FullState(state) => self.full_state = state,
-            ApiResponse::TimeEntryCreate(entry) => {
-                if let Some(entries) = self.full_state.time_entries.get_mut(&entry.day) {
-                    entries.push(entry);
+            ApiResponse::DayEntriesUpdate(day_entries) => {
+                if let Some(tui_entries) = self.full_state.time_entries.get_mut(&day_entries.day) {
+                    *tui_entries = day_entries.entries;
                 }
             }
             ApiResponse::TimeEntryUpdate(entry) => {

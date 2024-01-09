@@ -12,3 +12,10 @@ pub struct FullState {
     pub time_entries: HashMap<Day, Vec<TimeEntryVM>>,
     pub charge_codes: Vec<ChargeCode>,
 }
+
+#[derive(serde::Serialize)]
+pub struct DayTimeEntries {
+    pub day: Day,
+    pub entries: Vec<TimeEntryVM>,
+}
+

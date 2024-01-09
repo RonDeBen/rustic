@@ -1,7 +1,7 @@
 pub mod models;
 
-use self::models::{time_entry::TimeEntryVM, FullState};
-use crate::action::{Action, ApiAct};
+use self::models::{time_entry::TimeEntryVM, DayTimeEntries, FullState};
+use crate::action::{Action, ApiAct, UIAct};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use strum::Display;
@@ -26,8 +26,9 @@ pub enum ApiRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
 pub enum ApiResponse {
     FullState(FullState),
+    DayEntriesUpdate(DayTimeEntries),
     TimeEntryUpdate(TimeEntryVM),
-    TimeEntryCreate(TimeEntryVM),
+    // TimeEntryCreate(TimeEntryVM),
 }
 
 impl ApiClient {
@@ -43,7 +44,7 @@ impl ApiClient {
             Ok(_x) => {}
             // if we have reqwest errors, swallow them but send an error action
             Err(error) => action_tx
-                .send(Action::UI(crate::action::UIAct::Error(format!(
+                .send(Action::UI(UIAct::Error(format!(
                     "Failed api request: {:?}",
                     error
                 ))))
@@ -68,7 +69,7 @@ impl ApiClient {
                 }
                 ApiRequest::CreateTimeEntry => {
                     let rcv = self.create_time_entry().await?;
-                    let response = ApiResponse::TimeEntryCreate(rcv);
+                    let response = ApiResponse::DayEntriesUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))
                         .unwrap();
@@ -84,7 +85,7 @@ impl ApiClient {
                 }
                 ApiRequest::PlayEntry { id } => {
                     let rcv = self.play_entry(*id).await?;
-                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    let response = ApiResponse::DayEntriesUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))
                         .unwrap();
@@ -92,7 +93,7 @@ impl ApiClient {
                 }
                 ApiRequest::PauseEntry { id } => {
                     let rcv = self.pause_entry(*id).await?;
-                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    let response = ApiResponse::DayEntriesUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))
                         .unwrap();
@@ -111,7 +112,7 @@ impl ApiClient {
             }
             ApiAct::Error(error) => {
                 action_tx
-                    .send(Action::Api(ApiAct::Error(format!(
+                    .send(Action::UI(UIAct::Error(format!(
                         "Failed api request: {:?}",
                         error
                     ))))
@@ -130,12 +131,12 @@ impl ApiClient {
             .await
     }
 
-    pub async fn create_time_entry(&self) -> Result<TimeEntryVM, reqwest::Error> {
+    pub async fn create_time_entry(&self) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
             .post(&format!("{}/time_entry", self.base_url))
             .send()
             .await?
-            .json::<TimeEntryVM>()
+            .json::<DayTimeEntries>()
             .await
     }
 
@@ -153,35 +154,31 @@ impl ApiClient {
             .await
     }
 
-    pub async fn play_entry(&self, id: i32) -> Result<TimeEntryVM, reqwest::Error> {
+    pub async fn play_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
             .put(&format!("{}/time_entry/play/{}", self.base_url, id))
             .send()
             .await?
-            .json::<TimeEntryVM>()
+            .json::<DayTimeEntries>()
             .await
     }
 
-    pub async fn pause_entry(&self, id: i32) -> Result<TimeEntryVM, reqwest::Error> {
+    pub async fn pause_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
             .put(&format!("{}/time_entry/pause/{}", self.base_url, id))
             .send()
             .await?
-            .json::<TimeEntryVM>()
+            .json::<DayTimeEntries>()
             .await
     }
 
-    pub async fn delete_entry(&self, id: i32) -> Result<(), reqwest::Error> {
-        let response = self
-            .client
+    pub async fn delete_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
+        self.client
             .delete(&format!("{}/time_entry/{}", self.base_url, id))
             .send()
-            .await?;
-
-        match response.error_for_status() {
-            Ok(_res) => Ok(()),
-            Err(err) => Err(err),
-        }
+            .await?
+            .json::<DayTimeEntries>()
+            .await
     }
 }
 

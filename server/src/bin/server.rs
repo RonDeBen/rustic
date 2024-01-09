@@ -14,7 +14,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/full_state", get(get_everything_request))
-        .route("/time_entries_by_day", get(get_time_entries_by_day_request))
+        // .route("/time_entries_by_day", get(get_time_entries_by_day_request))
         .route("/time_entries", get(get_time_entries_request))
         .route("/time_entry", post(create_time_entry_request))
         .route("/time_entry/:id", put(update_time_entry_note_request))

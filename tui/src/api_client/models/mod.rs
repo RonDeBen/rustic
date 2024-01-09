@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::components::time_entry::entry::TimeEntry;
 
@@ -13,6 +13,12 @@ pub mod time_entry;
 pub struct FullState {
     pub time_entries: HashMap<Day, Vec<TimeEntryVM>>,
     pub charge_codes: Vec<ChargeCode>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Debug)]
+pub struct DayTimeEntries {
+    pub day: Day,
+    pub entries: Vec<TimeEntryVM>,
 }
 
 impl FullState {
