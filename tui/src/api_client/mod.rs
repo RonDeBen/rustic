@@ -100,7 +100,11 @@ impl ApiClient {
                     Ok(())
                 }
                 ApiRequest::DeleteEntry { id } => {
-                    self.delete_entry(*id).await?;
+                    let rcv = self.delete_entry(*id).await?;
+                    let response = ApiResponse::DayEntriesUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
                     Ok(())
                 }
             },

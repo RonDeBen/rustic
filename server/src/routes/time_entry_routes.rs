@@ -1,7 +1,7 @@
 use crate::db::charge_code_repo::fetch_charge_codes;
 use crate::db::time_entry_repo::update_time_entry_note;
 use crate::models::{DayTimeEntries, FullState};
-use crate::services::time_entry_service::{pause_timer, switch_to_timer};
+use crate::services::time_entry_service::{pause_timer_and_get_entries, switch_to_timer};
 use crate::utils::error::Result;
 use crate::{
     db::time_entry_repo::*,
@@ -32,10 +32,9 @@ pub struct NoteQuery {
 }
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {
-    let mut conn = pool.acquire().await?;
-    let entries = fetch_all_time_entries(&mut conn).await?;
+    let entries = fetch_all_time_entries(&pool).await?;
     let time_entries = organize_time_entries_by_day(entries);
-    let charge_codes = fetch_charge_codes(&mut conn).await?;
+    let charge_codes = fetch_charge_codes(&pool).await?;
 
     let full_state = FullState {
         time_entries,
@@ -48,8 +47,7 @@ pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Resul
 pub async fn get_time_entries_by_day_request(
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<HashMap<Day, Vec<TimeEntryVM>>>> {
-    let mut conn = pool.acquire().await?;
-    let entries = fetch_all_time_entries(&mut conn).await?;
+    let entries = fetch_all_time_entries(&pool).await?;
     let organized_entries = organize_time_entries_by_day(entries);
 
     Ok(Json(organized_entries))
@@ -59,8 +57,7 @@ pub async fn get_time_entries_request(
     Query(params): Query<DayQuery>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<Vec<TimeEntryVM>>> {
-    let mut conn = pool.acquire().await?;
-    let records = fetch_time_entries_for_day(&mut conn, params.day).await?;
+    let records = fetch_time_entries_for_day(&pool, params.day).await?;
     let vms: Vec<TimeEntryVM> = records.iter().map(|x| x.into()).collect();
 
     Ok(Json(vms))
@@ -68,12 +65,14 @@ pub async fn get_time_entries_request(
 
 pub async fn create_time_entry_request(
     Extension(pool): Extension<PgPool>,
-) -> Result<Json<TimeEntryVM>> {
-    let mut conn = pool.acquire().await?;
+) -> Result<Json<DayTimeEntries>> {
     let day = Day::get_current_day().ok_or(AppError::WeekendError)?;
-    let entry = create_time_entry(&mut conn, day).await?;
+    let entry = create_time_entry(&pool, day).await?;
+    let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
 
-    Ok(Json(entry.into()))
+    let day_time_entries = DayTimeEntries { day: entry.day, entries: entries.iter().map(|x| x.into()).collect() };
+
+    Ok(Json(day_time_entries))
 }
 
 pub async fn update_time_entry_note_request(
@@ -81,8 +80,7 @@ pub async fn update_time_entry_note_request(
     Query(query): Query<NoteQuery>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<TimeEntryVM>> {
-    let mut conn = pool.acquire().await?;
-    let entry = update_time_entry_note(&mut conn, params.id, query.note).await?;
+    let entry = update_time_entry_note(&pool, params.id, query.note).await?;
 
     Ok(Json(entry.into()))
 }
@@ -91,8 +89,7 @@ pub async fn play_time_entry_request(
     Path(params): Path<IdPath>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let mut conn = pool.acquire().await?;
-    let entries = switch_to_timer(&mut conn, params.id).await?;
+    let entries = switch_to_timer(&pool, params.id).await?;
     Ok(Json(entries))
 }
 
@@ -100,17 +97,23 @@ pub async fn pause_time_entry_request(
     Path(params): Path<IdPath>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let mut conn = pool.acquire().await?;
-    let entry = fetch_time_entry_by_id(&mut conn, params.id).await?;
-    let entries = pause_timer(&mut conn, &entry).await?;
+    let entry = fetch_time_entry_by_id(&pool, params.id).await?;
+    let entries = pause_timer_and_get_entries(&pool, &entry).await?;
     Ok(Json(entries))
 }
 
 pub async fn delete_time_entry_request(
     Path(params): Path<IdPath>,
     Extension(pool): Extension<PgPool>,
-) -> Result<()> {
-    let mut conn = pool.acquire().await?;
-    delete_time_entry(&mut conn, params.id).await?;
-    Ok(())
+) -> Result<Json<DayTimeEntries>> {
+    let entry = fetch_time_entry_by_id(&pool, params.id).await?;
+    delete_time_entry(&pool, params.id).await?;
+    let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
+    let day_time_entries = DayTimeEntries {
+        day: entry.day,
+        entries: entries.iter().map(|x| x.into()).collect(),
+    };
+    // println!("entries in route: {:?}", entries.entries.len());
+    // delete_time_entry(&pool, params.id).await?;
+    Ok(Json(day_time_entries))
 }

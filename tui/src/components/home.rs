@@ -53,17 +53,12 @@ impl Home<'_> {
         match respo {
             ApiResponse::FullState(state) => self.full_state = state,
             ApiResponse::DayEntriesUpdate(day_entries) => {
-                if let Some(tui_entries) = self.full_state.time_entries.get_mut(&day_entries.day) {
-                    *tui_entries = day_entries.entries;
-                }
+                self.full_state.time_entries.insert(day_entries.day, day_entries.entries);
             }
             ApiResponse::TimeEntryUpdate(entry) => {
-                // Find the vector of TimeEntryVMs for the given day.
                 if let Some(entries) = self.full_state.time_entries.get_mut(&entry.day) {
-                    // Iterate over the vector to find the entry with the matching id.
                     for existing_entry in entries.iter_mut() {
                         if existing_entry.id == entry.id {
-                            // Update the existing entry.
                             *existing_entry = entry.clone();
                             break;
                         }
@@ -71,7 +66,6 @@ impl Home<'_> {
                 }
             }
         }
-        self.set_time_entries();
     }
 }
 
@@ -108,7 +102,8 @@ impl Component for Home<'_> {
             Action::Api(api_action) => {
                 // only handle the responses here
                 if let ApiAct::Response(respo) = api_action {
-                    self.handle_response(respo)
+                    self.handle_response(respo);
+                    self.set_time_entries();
                 }
             }
         }

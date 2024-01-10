@@ -2,7 +2,7 @@ use chrono::{Datelike, NaiveDateTime, Utc, Weekday};
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, Debug)]
 pub struct TimeEntryRaw {
     pub id: i32,
     pub start_time: Option<NaiveDateTime>,
@@ -11,7 +11,7 @@ pub struct TimeEntryRaw {
     pub day: Day,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct TimeEntryVM {
     pub id: i32,
     pub total_time: i64, // milliseconds
@@ -34,7 +34,13 @@ impl From<TimeEntryRaw> for TimeEntryVM {
 
 impl From<&TimeEntryRaw> for TimeEntryVM {
     fn from(value: &TimeEntryRaw) -> Self {
-        value.into()
+        Self {
+            id: value.id,
+            total_time: value.total_time,
+            note: value.note.to_owned(),
+            day: value.day,
+            is_active: value.start_time.is_some(),
+        }
     }
 }
 

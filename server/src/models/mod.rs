@@ -13,7 +13,7 @@ pub struct FullState {
     pub charge_codes: Vec<ChargeCode>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 pub struct DayTimeEntries {
     pub day: Day,
     pub entries: Vec<TimeEntryVM>,

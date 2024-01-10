@@ -4,8 +4,7 @@ use axum::{Json, Extension};
 use sqlx::PgPool;
 
 pub async fn get_charge_codes(Extension(pool): Extension<PgPool>) -> Result<Json<Vec<ChargeCode>>> {
-    let mut conn = pool.acquire().await?;
-    let records = fetch_charge_codes(&mut conn).await?;
+    let records = fetch_charge_codes(&pool).await?;
 
     Ok(Json(records))
 }
