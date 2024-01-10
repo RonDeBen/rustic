@@ -1,6 +1,6 @@
 use self::{
     charge_code::ChargeCode,
-    time_entry::{Day, TimeEntryVM},
+    time_entry::{Day, TimeEntryVM, TimeEntryRaw},
 };
 use std::collections::HashMap;
 
@@ -19,3 +19,10 @@ pub struct DayTimeEntries {
     pub entries: Vec<TimeEntryVM>,
 }
 
+impl DayTimeEntries {
+    pub fn new(day: Day, entries: &[TimeEntryRaw]) -> Self {
+        let mut vms: Vec<TimeEntryVM> = entries.iter().map(|x| x.into()).collect();
+        vms.sort_by(|a, b| a.id.cmp(&b.id));
+        Self { day, entries: vms }
+    }
+}

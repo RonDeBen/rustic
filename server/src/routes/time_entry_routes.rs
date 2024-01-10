@@ -70,7 +70,7 @@ pub async fn create_time_entry_request(
     let entry = create_time_entry(&pool, day).await?;
     let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
 
-    let day_time_entries = DayTimeEntries { day: entry.day, entries: entries.iter().map(|x| x.into()).collect() };
+    let day_time_entries = DayTimeEntries::new(day, entries.as_slice());
 
     Ok(Json(day_time_entries))
 }
@@ -90,6 +90,8 @@ pub async fn play_time_entry_request(
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
     let entries = switch_to_timer(&pool, params.id).await?;
+    let print_entries: Vec<i32> = entries.entries.iter().map(|x| x.id).collect();
+    println!("in request: {:?}", print_entries);
     Ok(Json(entries))
 }
 
@@ -109,11 +111,6 @@ pub async fn delete_time_entry_request(
     let entry = fetch_time_entry_by_id(&pool, params.id).await?;
     delete_time_entry(&pool, params.id).await?;
     let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
-    let day_time_entries = DayTimeEntries {
-        day: entry.day,
-        entries: entries.iter().map(|x| x.into()).collect(),
-    };
-    // println!("entries in route: {:?}", entries.entries.len());
-    // delete_time_entry(&pool, params.id).await?;
+    let day_time_entries = DayTimeEntries::new(entry.day, entries.as_slice());
     Ok(Json(day_time_entries))
 }

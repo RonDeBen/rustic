@@ -1,8 +1,5 @@
 use crate::{
-    db::time_entry_repo::{
-        delete_time_entry, fetch_all_running_timers, fetch_time_entries_for_day,
-        fetch_time_entry_by_id, pause_time_entry,
-    },
+    db::time_entry_repo::{fetch_all_running_timers, fetch_time_entries_for_day, pause_time_entry},
     models::{time_entry::TimeEntryRaw, DayTimeEntries},
 };
 use chrono::{NaiveDateTime, Utc};
@@ -18,16 +15,16 @@ pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, s
     // start new timer
     let start_time: NaiveDateTime = Utc::now().naive_utc();
     let entries = play_and_fetch_day_entries(pool, id, start_time).await?;
+    let print_entries: Vec<i32> = entries.iter().map(|x| x.id).collect();
+    println!("after switch: {:?}", print_entries);
+
 
     let day = match entries.first() {
         Some(entry) => entry.day,
         None => crate::models::time_entry::Day::Friday,
     };
 
-    Ok(DayTimeEntries {
-        day,
-        entries: entries.iter().map(|x| x.into()).collect(),
-    })
+    Ok(DayTimeEntries::new(day, entries.as_slice()))
 }
 
 pub async fn pause_timer(pool: &PgPool, entry: &TimeEntryRaw) -> Result<(), sqlx::Error> {
@@ -44,10 +41,8 @@ pub async fn pause_timer_and_get_entries(
     let elapsed_time = get_elapsed_time(entry);
     let entries = pause_and_fetch_day_entries(pool, entry.id, elapsed_time).await?;
 
-    Ok(DayTimeEntries {
-        day: entry.day,
-        entries: entries.iter().map(|x| x.into()).collect(),
-    })
+
+    Ok(DayTimeEntries::new(entry.day, entries.as_slice()))
 }
 
 fn get_elapsed_time(entry: &TimeEntryRaw) -> i64 {
@@ -65,8 +60,6 @@ async fn play_and_fetch_day_entries(
     id: i32,
     start_time: NaiveDateTime,
 ) -> Result<Vec<TimeEntryRaw>, sqlx::Error> {
-    // let mut tx = pool.begin().await?;
-
     let (day,): (i16,) = sqlx::query_as(
         "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING day",
     )
@@ -76,35 +69,18 @@ async fn play_and_fetch_day_entries(
     .await?;
 
     let entries = fetch_time_entries_for_day(pool, day).await?;
+    let print_entries: Vec<i32> = entries.iter().map(|x| x.id).collect();
+    println!("after fetch: {:?}", print_entries);
 
-    // tx.commit().await?;
 
     Ok(entries)
 }
-
-// pub async fn delete_and_fetch_time_entries(
-//     pool: &PgPool,
-//     id: i32,
-// ) -> Result<Vec<TimeEntryRaw>, sqlx::Error> {
-//     let entry = fetch_time_entry_by_id(pool, id).await?;
-//     println!("entry: {:?}", entry);
-//     delete_time_entry(pool, id).await?;
-//     let entries = fetch_time_entries_for_day(pool, entry.day.into()).await?;
-//     println!("entries after delete: {:?}", entries.len());
-
-//     Ok(DayTimeEntries {
-//         day: entry.day,
-//         entries: entries.iter().map(|x| x.into()).collect(),
-//     })
-// }
 
 pub async fn pause_and_fetch_day_entries(
     pool: &PgPool,
     id: i32,
     elapsed_time: i64,
 ) -> Result<Vec<TimeEntryRaw>, sqlx::Error> {
-    // let mut tx = pool.begin().await?;
-
     let (day,): (i16,) = sqlx::query_as(
         "UPDATE time_tracking.time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2 RETURNING day",
     )
@@ -112,11 +88,8 @@ pub async fn pause_and_fetch_day_entries(
     .bind(id)
     .fetch_one(pool)
     .await?;
-    println!("day: {}", day);
 
     let entries = fetch_time_entries_for_day(pool, day).await?;
-    println!("entries len: {}", entries.len());
-    // tx.commit().await?;
 
     Ok(entries)
 }
@@ -130,19 +103,6 @@ mod tests {
     use chrono::NaiveDateTime;
     use chrono::Utc;
     use std::time::Duration;
-
-    // #[tokio::test]
-    // async fn can_play_and_fetch_entries() {
-    //     let pool = get_connection().await;
-    //     let mut tx = pool.begin().await.unwrap();
-
-    //     let entry1 = create_time_entry(&mut * tx, Day::Monday).await.unwrap();
-    //     let entry2 = create_time_entry(&mut * tx, Day::Monday).await.unwrap();
-    //     let entry3 = create_time_entry(&mut * tx, Day::Monday).await.unwrap();
-
-    //     let start_time: NaiveDateTime = Utc::now().naive_utc();
-    //     let entries = play_and_fetch_day_entries(&pool, entry1.id, start_time).await.unwrap();
-    // }
 
     #[tokio::test]
     async fn pausing_correctly_calculates_elapsed_time() {
@@ -189,10 +149,8 @@ mod tests {
             .iter()
             .find(|x| x.id == entry2.id)
             .unwrap();
-        // println!("swapped_to_entry2: {:?}", swapped_to_entry2.id);
 
         let running_timers = fetch_all_running_timers(&mut *tx).await.unwrap();
-        // println!("running timers len {}", running_timers.len());
 
         assert_eq!(running_timers.len(), 1);
         assert_eq!(running_timers.first().unwrap().id, swapped_to_entry2.id);

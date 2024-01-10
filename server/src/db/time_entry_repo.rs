@@ -7,11 +7,12 @@ pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>,
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query_as::<_, TimeEntryRaw>(
-        "SELECT * FROM time_tracking.time_entries ORDER BY day, start_time",
-    )
-    .fetch_all(exec)
-    .await
+    let mut entries = sqlx::query_as::<_, TimeEntryRaw>("SELECT * FROM time_tracking.time_entries")
+        .fetch_all(exec)
+        .await?;
+
+    entries.sort_by(|a, b| a.id.cmp(&b.id));
+    Ok(entries)
 }
 
 pub async fn fetch_all_running_timers<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
@@ -328,4 +329,3 @@ mod tests {
         tx.rollback().await.unwrap()
     }
 }
-

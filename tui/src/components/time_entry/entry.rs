@@ -18,7 +18,7 @@ impl From<&ApiTimeEntry> for TimeEntry {
     fn from(value: &ApiTimeEntry) -> Self {
         Self {
             id: value.id,
-            charge_code: "TODO".to_string(),
+            charge_code: value.id.to_string(),
             elapsed_time: Duration::milliseconds(value.total_time as i64),
             is_active: value.is_active,
             is_selected: false,
@@ -57,13 +57,6 @@ impl TimeEntry {
             true => Style::default().fg(Color::Yellow),
             false => Style::default().fg(Color::DarkGray),
         }
-        // if self.is_selected {
-        //     Style::default().fg(Color::Cyan)
-        // } else if self.is_active {
-        //     Style::default().fg(Color::Green)
-        // } else {
-        //     Style::default().fg(Color::White)
-        // }
     }
 }
 
