@@ -1,7 +1,11 @@
-use crate::{components::Component, tui::Frame};
+use crate::{
+    components::Component,
+    tui::Frame,
+};
 use chrono::Duration;
 use color_eyre::eyre::Result;
 use ratatui::{prelude::*, widgets::*};
+use tokio::time::Instant;
 
 use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
 
@@ -12,6 +16,8 @@ pub struct TimeEntry {
     pub elapsed_time: Duration,
     pub is_active: bool,
     pub is_selected: bool,
+    pub start_time: Option<Instant>,
+    delta_time: Option<Duration>,
 }
 
 impl From<&ApiTimeEntry> for TimeEntry {
@@ -22,6 +28,11 @@ impl From<&ApiTimeEntry> for TimeEntry {
             elapsed_time: Duration::milliseconds(value.total_time as i64),
             is_active: value.is_active,
             is_selected: false,
+            start_time: match value.is_active{
+                true => Some(Instant::now()),
+                false => None,
+            },
+            delta_time: None,
         }
     }
 }
@@ -34,6 +45,8 @@ impl Default for TimeEntry {
             elapsed_time: Duration::zero(),
             is_active: false,
             is_selected: false,
+            start_time: None,
+            delta_time: None,
         }
     }
 }
@@ -44,12 +57,16 @@ impl TimeEntry {
     }
 
     fn format_duration(&self) -> String {
-        let total_seconds = self.elapsed_time.num_seconds();
-        let hours = total_seconds / 3600;
-        let minutes = (total_seconds % 3600) / 60;
-        let seconds = total_seconds % 60;
+        let total_milliseconds = self.total_milliseconds();
+        let hours = total_milliseconds / 3_600_000;
+        let minutes = (total_milliseconds % 3_600_000) / 60_000;
+        let seconds = (total_milliseconds % 60_000) / 1_000;
+        let milliseconds = total_milliseconds % 1_000;
 
-        format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+        format!(
+            "{:02}:{:02}:{:02}.{:03}",
+            hours, minutes, seconds, milliseconds
+        )
     }
 
     fn get_border_style(&self) -> Style {
@@ -58,9 +75,37 @@ impl TimeEntry {
             false => Style::default().fg(Color::DarkGray),
         }
     }
+
+    pub fn update_elapsed_time(&mut self) {
+        if self.is_active {
+            if let Some(start_time) = self.start_time {
+                let now = Instant::now();
+                let std_duration = now.duration_since(start_time);
+                self.delta_time = Some(
+                    Duration::seconds(std_duration.as_secs() as i64)
+                        + Duration::nanoseconds(std_duration.subsec_nanos() as i64),
+                );
+            }
+        }
+    }
+
+    fn total_milliseconds(&self) -> i64 {
+        match self.delta_time {
+            Some(d) => (self.elapsed_time + d).num_milliseconds(),
+            None => self.elapsed_time.num_milliseconds(),
+        }
+    }
 }
 
 impl Component for TimeEntry {
+    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    //     if let Action::UI(UIAct::Tick) = action {
+    //         self.update_elapsed_time();
+    //     };
+
+    //     Ok(None)
+    // }
+
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
         let play_pause_symbol = if self.is_active { "⏸" } else { "▶" };
         let elapsed_time_str = self.format_duration();
@@ -82,7 +127,7 @@ impl Component for TimeEntry {
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Length(3),  // For play/pause button
-                Constraint::Length(10), // For elapsed time
+                Constraint::Length(14), // For elapsed time
                 Constraint::Min(10),    // For charge code
             ])
             .split(inner_rect);
@@ -99,7 +144,9 @@ impl Component for TimeEntry {
         f.render_widget(Paragraph::new(time_text), chunks[1]);
 
         // Render charge code
-        let charge_code_text = Text::styled(&self.charge_code, Style::default());
+        // let charge_code_text = Text::styled(&self.charge_code, Style::default());
+        let debug = format!("delta_time: {:?}", self.delta_time);
+        let charge_code_text = Text::styled(debug, Style::default());
         f.render_widget(Paragraph::new(charge_code_text), chunks[2]);
 
         Ok(())

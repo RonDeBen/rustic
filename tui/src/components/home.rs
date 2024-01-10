@@ -88,7 +88,7 @@ impl Component for Home<'_> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::UI(ui_action) => match ui_action {
-                UIAct::Tick => {}
+                UIAct::Tick => self.time_entry_container.update_timers(),
                 UIAct::Quit => {}
                 _ => {}
             },
