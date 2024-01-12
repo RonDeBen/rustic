@@ -1,14 +1,9 @@
 use super::entry::TimeEntry;
-use crate::{
-    action::{Action, UIAct},
-    api_client::ApiRequest::*,
-    components::Component,
-    tui::Frame,
-};
+use crate::{action::{Action, UIAct}, api_client::ApiRequest::*, components::Component, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-use tokio::{sync::mpsc::UnboundedSender, time::Instant};
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct TimeEntryContainer {
     entries: Vec<TimeEntry>,
@@ -32,25 +27,20 @@ impl TimeEntryContainer {
     pub fn get_selected_entry(&self) -> Option<&TimeEntry> {
         self.entries.get(self.selected_index)
     }
-
-    pub fn update_timers(&mut self) {
-        for entry in self.entries.iter_mut() {
-            entry.update_elapsed_time();
-        }
-    }
 }
 
 impl Component for TimeEntryContainer {
-    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
-    //     if let Action::UI(UIAct::Tick) = action {
-    //         for entry in self.entries.iter_mut() {
-    //             entry.update_elapsed_time();
-    //         }
-    //     };
-
-    //     Ok(None)
-    // }
-
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        match action {
+            Action::UI(UIAct::Tick) => {
+                for entry in &mut self.entries {
+                    entry.update(action.clone())?;
+                }
+            }
+            _ => { /* ... */ }
+        }
+        Ok(None)
+    }
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.command_tx = Some(tx.clone());
 
@@ -80,14 +70,14 @@ impl Component for TimeEntryContainer {
                             if let Some(tx) = &self.command_tx {
                                 tx.send(Action::api_request_action(PlayEntry { id: entry.id }))?;
                             }
-                            entry.start_time = Some(Instant::now());
+                            // entry.start_time = Some(Instant::now());
                         }
                         // went from play to pause
                         false => {
                             if let Some(tx) = &self.command_tx {
                                 tx.send(Action::api_request_action(PauseEntry { id: entry.id }))?;
                             }
-                            entry.start_time = None;
+                            // entry.start_time = None;
                         }
                     }
 

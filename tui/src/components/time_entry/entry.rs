@@ -1,8 +1,7 @@
-use crate::{
-    components::Component,
-    tui::Frame,
-};
-use chrono::Duration;
+use std::time::SystemTime;
+
+use crate::{components::Component, tui::Frame, action::{Action, UIAct}};
+use chrono::{Duration, NaiveDateTime, TimeZone, Utc};
 use color_eyre::eyre::Result;
 use ratatui::{prelude::*, widgets::*};
 use tokio::time::Instant;
@@ -28,12 +27,34 @@ impl From<&ApiTimeEntry> for TimeEntry {
             elapsed_time: Duration::milliseconds(value.total_time as i64),
             is_active: value.is_active,
             is_selected: false,
-            start_time: match value.is_active{
-                true => Some(Instant::now()),
-                false => None,
-            },
+            start_time: convert_ndt_to_instant(&value.start_time),
             delta_time: None,
         }
+    }
+}
+
+fn convert_ndt_to_instant(date: &Option<NaiveDateTime>) -> Option<Instant> {
+    match date {
+        Some(date) => {
+            let datetime = Utc.from_utc_datetime(date);
+            let duration_since_epoch = Duration::seconds(datetime.timestamp());
+
+            let now_duration_since_epoch = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs();
+
+            let date_duration_since_epoch = duration_since_epoch.num_seconds() as u64;
+
+            if date_duration_since_epoch > now_duration_since_epoch {
+                // The date is in the future relative to the current system time
+                None
+            } else {
+                let elapsed = now_duration_since_epoch - date_duration_since_epoch;
+                Instant::now().checked_sub(std::time::Duration::from_secs(elapsed))
+            }
+        }
+        None => None,
     }
 }
 
@@ -98,13 +119,13 @@ impl TimeEntry {
 }
 
 impl Component for TimeEntry {
-    // fn update(&mut self, action: Action) -> Result<Option<Action>> {
-    //     if let Action::UI(UIAct::Tick) = action {
-    //         self.update_elapsed_time();
-    //     };
+    fn update(&mut self, action: Action) -> Result<Option<Action>> {
+        if let Action::UI(UIAct::Tick) = action {
+            self.update_elapsed_time();
+        };
 
-    //     Ok(None)
-    // }
+        Ok(None)
+    }
 
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
         let play_pause_symbol = if self.is_active { "⏸" } else { "▶" };

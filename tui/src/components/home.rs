@@ -53,7 +53,9 @@ impl Home<'_> {
         match respo {
             ApiResponse::FullState(state) => self.full_state = state,
             ApiResponse::DayEntriesUpdate(day_entries) => {
-                self.full_state.time_entries.insert(day_entries.day, day_entries.entries);
+                self.full_state
+                    .time_entries
+                    .insert(day_entries.day, day_entries.entries);
             }
             ApiResponse::TimeEntryUpdate(entry) => {
                 if let Some(entries) = self.full_state.time_entries.get_mut(&entry.day) {
@@ -88,7 +90,9 @@ impl Component for Home<'_> {
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
             Action::UI(ui_action) => match ui_action {
-                UIAct::Tick => self.time_entry_container.update_timers(),
+                UIAct::Tick => {
+                    self.time_entry_container.update(Action::UI(ui_action))?;
+                },
                 UIAct::Quit => {}
                 _ => {}
             },

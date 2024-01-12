@@ -14,6 +14,7 @@ pub struct TimeEntryRaw {
 #[derive(Serialize, Debug)]
 pub struct TimeEntryVM {
     pub id: i32,
+    pub start_time: Option<NaiveDateTime>,
     pub total_time: i64, // milliseconds
     pub note: String,
     pub day: Day,
@@ -28,6 +29,7 @@ impl From<TimeEntryRaw> for TimeEntryVM {
             note: value.note.to_owned(),
             day: value.day,
             is_active: value.start_time.is_some(),
+            start_time: value.start_time,
         }
     }
 }
@@ -40,6 +42,7 @@ impl From<&TimeEntryRaw> for TimeEntryVM {
             note: value.note.to_owned(),
             day: value.day,
             is_active: value.start_time.is_some(),
+            start_time: value.start_time,
         }
     }
 }
