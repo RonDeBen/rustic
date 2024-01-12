@@ -25,6 +25,18 @@ impl From<i16> for Day {
     }
 }
 
+impl From<Day> for i16 {
+    fn from(day: Day) -> Self {
+        match day {
+            Day::Monday => 0,
+            Day::Tuesday => 1,
+            Day::Wednesday => 2,
+            Day::Thursday => 3,
+            Day::Friday => 4,
+        }
+    }
+}
+
 impl Day {
     pub fn get_current_day() -> Self {
         let today = Utc::now().date_naive().weekday();

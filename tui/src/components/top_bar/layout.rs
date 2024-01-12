@@ -15,10 +15,6 @@ pub struct TopBar {
 }
 
 impl TopBar {
-    fn is_weekday_selector_event(&self, key: &KeyEvent) -> bool {
-        matches!(key.code, KeyCode::Char('1'..='5'))
-    }
-
     fn is_mode_selector_event(&self, key: &KeyEvent) -> bool {
         matches!(key.code, KeyCode::Char('0') | KeyCode::Char('9'))
     }
@@ -58,9 +54,7 @@ impl Component for TopBar {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        if self.is_weekday_selector_event(&key) {
-            self.weekday_selector.handle_key_events(key)?;
-        }
+        self.weekday_selector.handle_key_events(key)?;
 
         if self.is_mode_selector_event(&key) {
             self.mode_selector.handle_key_events(key)?;

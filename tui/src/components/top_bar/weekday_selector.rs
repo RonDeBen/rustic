@@ -30,6 +30,24 @@ impl WeekdaySelector {
         }
         Ok(())
     }
+
+    fn move_day_left(&mut self) -> Result<()> {
+        let day_num = (i16::from(self.selected_day) - 1) % 5;
+        self.selected_day = day_num.into();
+        if let Some(tx) = &self.command_tx {
+            tx.send(Action::TT(ChangeDay(self.selected_day)))?;
+        }
+        Ok(())
+    }
+
+    fn move_day_right(&mut self) -> Result<()> {
+        let day_num = (i16::from(self.selected_day) + 1) % 5;
+        self.selected_day = day_num.into();
+        if let Some(tx) = &self.command_tx {
+            tx.send(Action::TT(ChangeDay(self.selected_day)))?;
+        }
+        Ok(())
+    }
 }
 
 impl Component for WeekdaySelector {
@@ -85,6 +103,8 @@ impl Component for WeekdaySelector {
             KeyCode::Char('3') => self.select_day(Day::Wednesday)?,
             KeyCode::Char('4') => self.select_day(Day::Thursday)?,
             KeyCode::Char('5') => self.select_day(Day::Friday)?,
+            KeyCode::Left | KeyCode::Char('h') => self.move_day_left()?,
+            KeyCode::Right | KeyCode::Char('l') => self.move_day_right()?,
             _ => {}
         };
         Ok(None)
