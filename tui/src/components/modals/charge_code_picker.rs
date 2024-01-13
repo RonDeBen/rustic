@@ -1,7 +1,9 @@
 use crate::{action::Action, api_client::ApiRequest::UpdateChargeCode};
 use crate::{api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use fuzzy_matcher::skim::SkimMatcherV2;
+use fuzzy_matcher::FuzzyMatcher;
 use ratatui::layout::Alignment;
 use ratatui::{
     layout::{Margin, Rect},
@@ -13,6 +15,7 @@ use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChargeCodePickerModal {
     command_tx: Option<UnboundedSender<Action>>,
+    matcher: SkimMatcherV2,
     pub input: String,
     pub charge_codes: Vec<ChargeCode>,
     pub filtered_codes: Vec<ChargeCodeRef>,
@@ -47,6 +50,7 @@ impl ChargeCodePickerModal {
             is_active: false,
             entry_id: None,
             list_state,
+            matcher: SkimMatcherV2::default(),
         }
     }
 
@@ -69,20 +73,23 @@ impl ChargeCodePickerModal {
 
     pub fn update_input(&mut self, input: String) {
         self.input = input;
-        self.filtered_codes = self
+
+        let mut scored_codes: Vec<(i64, String, i32)> = self
             .charge_codes
             .iter()
-            .filter(|code| {
-                code.alias
-                    .to_lowercase()
-                    .contains(&self.input.to_lowercase())
-            })
-            .map(|code| ChargeCodeRef {
-                alias: code.alias.clone(),
-                id: code.id,
+            .filter_map(|code| {
+                self.matcher
+                    .fuzzy_match(&code.alias, &self.input)
+                    .map(|score| (score, code.alias.clone(), code.id))
             })
             .collect();
-        self.update_selection_to_first()
+
+        scored_codes.sort_by(|a, b| b.0.cmp(&a.0));
+
+        self.filtered_codes = scored_codes
+            .into_iter()
+            .map(|(_, alias, id)| ChargeCodeRef { alias, id })
+            .collect();
     }
 
     pub fn handle_char(&mut self, c: char) {
