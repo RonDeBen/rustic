@@ -158,7 +158,7 @@ impl ApiClient {
         charge_code_id: i32,
     ) -> Result<TimeEntryVM, reqwest::Error> {
         self.client
-            .post(&format!(
+            .put(&format!(
                 "{}/time_entry/{}/charge_code/{}",
                 self.base_url, time_entry_id, charge_code_id
             ))

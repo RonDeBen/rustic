@@ -6,12 +6,12 @@ use crate::utils::error::Result;
 use crate::{
     db::time_entry_repo::*,
     models::time_entry::{Day, TimeEntryVM},
-    utils::error::AppError,
 };
 use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
+use serde::Deserialize;
 use sqlx::PgPool;
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {
@@ -49,12 +49,18 @@ pub async fn create_time_entry_request(
     Ok(Json(day_time_entries))
 }
 
+#[derive(Deserialize)]
+pub struct EntryAndCodeIdPath {
+    id: i32,
+    code_id: i32,
+}
+
 pub async fn update_time_entry_charge_code_request(
-    Path((entry_id, charge_code_id)): Path<(i32, i32)>,
+    Path(params): Path<EntryAndCodeIdPath>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<TimeEntryVM>> {
-    update_charge_code_for_time_entry(&pool, entry_id, charge_code_id).await?;
-    let updated_entry = fetch_time_entry_by_id(&pool, entry_id).await?;
+    update_charge_code_for_time_entry(&pool, params.id, params.code_id).await?;
+    let updated_entry = fetch_time_entry_by_id(&pool, params.id).await?;
     Ok(Json(updated_entry.into()))
 }
 

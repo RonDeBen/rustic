@@ -1,50 +1,66 @@
-// use super::mode_selector::ModeSelector;
-use crate::{action::Action, api_client::models::charge_code::ChargeCode, components::Component};
+use crate::{action::Action, api_client::ApiRequest::UpdateChargeCode};
+use crate::{api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use ratatui::{
     layout::{Margin, Rect},
-    style::{Color, Style, Stylize},
+    style::{Color, Style},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChargeCodePickerModal {
+    command_tx: Option<UnboundedSender<Action>>,
     pub input: String,
     pub charge_codes: Vec<ChargeCode>,
-    pub filtered_codes: Vec<String>,
+    pub filtered_codes: Vec<ChargeCodeRef>,
     pub is_active: bool,
-    pub selected_charge_code_id: Option<i32>,
+    pub entry_id: Option<i32>,
     pub list_state: ListState,
+}
+
+pub struct ChargeCodeRef {
+    alias: String,
+    id: i32,
 }
 
 impl ChargeCodePickerModal {
     pub fn new(charge_codes: &[ChargeCode]) -> Self {
-        let charge_code_names = charge_codes.iter().map(|x| x.alias.clone()).collect();
+        let charge_code_names = charge_codes
+            .iter()
+            .map(|x| ChargeCodeRef {
+                alias: x.alias.clone(),
+                id: x.id,
+            })
+            .collect();
         let mut list_state = ListState::default();
-        if !charge_codes.is_empty(){
+        if !charge_codes.is_empty() {
             list_state.select(Some(0))
         }
         Self {
+            command_tx: None,
             input: String::new(),
             charge_codes: charge_codes.to_vec(),
             filtered_codes: charge_code_names,
             is_active: false,
-            selected_charge_code_id: None,
-            list_state
+            entry_id: None,
+            list_state,
         }
     }
 
     pub fn set_charge_code_id(&mut self, id: i32) {
-        self.selected_charge_code_id = Some(id);
+        self.entry_id = Some(id);
     }
 
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
+        self.update_selection_to_first();
     }
 
     fn update_selection_to_first(&mut self) {
-        if !self.filtered_codes.is_empty(){
+        //TODO: preserve selection, if it survived the filter??
+        if !self.filtered_codes.is_empty() {
             self.list_state.select(Some(0));
         }
     }
@@ -59,7 +75,10 @@ impl ChargeCodePickerModal {
                     .to_lowercase()
                     .contains(&self.input.to_lowercase())
             })
-            .map(|code| code.alias.clone())
+            .map(|code| ChargeCodeRef {
+                alias: code.alias.clone(),
+                id: code.id,
+            })
             .collect();
         self.update_selection_to_first()
     }
@@ -104,9 +123,22 @@ impl ChargeCodePickerModal {
         };
         self.list_state.select(Some(i));
     }
+
+    fn get_selected_charge_code_id(&self) -> Option<i32> {
+        self.list_state.selected().and_then(|selected_index| {
+            self.filtered_codes
+                .get(selected_index)
+                .map(|code_ref| code_ref.id)
+        })
+    }
 }
 
 impl Component for ChargeCodePickerModal {
+    fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
+        self.command_tx = Some(tx);
+        Ok(())
+    }
+
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         if self.is_active {
             // Define the size and position of the modal
@@ -128,7 +160,13 @@ impl Component for ChargeCodePickerModal {
             f.render_widget(block, modal_area);
 
             // Draw the input box
-            let input_block = Block::default().title("Input").borders(Borders::ALL);
+            let debug_text = format!(
+                "entry id: {:?}, cc id: {:?}, has tx: {:?}",
+                self.entry_id,
+                self.get_selected_charge_code_id(),
+                self.command_tx.is_some()
+            );
+            let input_block = Block::default().title(debug_text).borders(Borders::ALL);
             let input_paragraph = Paragraph::new(&*self.input)
                 .block(input_block)
                 .wrap(Wrap { trim: true });
@@ -148,9 +186,8 @@ impl Component for ChargeCodePickerModal {
             let list_items: Vec<ListItem> = self
                 .filtered_codes
                 .iter()
-                .map(|code| ListItem::new(code.clone()).style(item_style))
+                .map(|code_ref| ListItem::new(code_ref.alias.clone()).style(item_style))
                 .collect();
-
 
             let list = List::new(list_items)
                 .block(list_block)
@@ -195,10 +232,17 @@ impl Component for ChargeCodePickerModal {
                     self.update_input(self.input.clone());
                 }
                 KeyCode::Enter => {
-                    if let Some(selection) = self.filtered_codes.first() {
-                        // TODO: handle selection
-                        println!("Selected charge code: {}", selection);
+                    if let (Some(time_entry_id), Some(charge_code_id), Some(tx)) = (
+                        self.entry_id,
+                        self.get_selected_charge_code_id(),
+                        &self.command_tx,
+                    ) {
+                        tx.send(Action::api_request_action(UpdateChargeCode {
+                            time_entry_id,
+                            charge_code_id,
+                        }))?;
                     }
+
                     self.toggle();
                 }
                 KeyCode::Esc => {

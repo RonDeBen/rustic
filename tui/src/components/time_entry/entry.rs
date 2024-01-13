@@ -1,5 +1,5 @@
 use super::time_utils::format_millis;
-use crate::api_client::models::time_entry::{ChargeCodeVM, TimeEntryVM as ApiTimeEntry};
+use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
 use crate::{
     action::{Action, UIAct},
     components::Component,
@@ -14,7 +14,7 @@ use tokio::time::Instant;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimeEntry {
     pub id: i32,
-    pub charge_code: Option<ChargeCodeVM>,
+    pub charge_code_name: Option<String>,
     pub elapsed_time: Duration,
     pub is_active: bool,
     pub is_selected: bool,
@@ -24,9 +24,10 @@ pub struct TimeEntry {
 
 impl From<&ApiTimeEntry> for TimeEntry {
     fn from(value: &ApiTimeEntry) -> Self {
+        let charge_code_name = value.charge_code.as_ref().map(|code| code.alias.clone());
         Self {
             id: value.id,
-            charge_code: value.charge_code.to_owned(),
+            charge_code_name,
             elapsed_time: Duration::milliseconds(value.total_time as i64),
             is_active: value.is_active,
             is_selected: false,
@@ -65,7 +66,7 @@ impl Default for TimeEntry {
     fn default() -> Self {
         Self {
             id: -1,
-            charge_code: None,
+            charge_code_name: None,
             elapsed_time: Duration::zero(),
             is_active: false,
             is_selected: false,
@@ -112,9 +113,9 @@ impl TimeEntry {
     }
 
     fn charge_code_string(&self) -> &str {
-        match &self.charge_code {
-            Some(cc) => &cc.alias,
-            None => "(c) to edit charge code"
+        match &self.charge_code_name {
+            Some(cc_name) => cc_name,
+            None => "(c) to edit charge code",
         }
     }
 }
