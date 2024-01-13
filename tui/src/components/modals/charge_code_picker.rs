@@ -1,14 +1,13 @@
 // use super::mode_selector::ModeSelector;
 use crate::{action::Action, api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
 use ratatui::{
     layout::{Margin, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    style::{Color, Style, Stylize},
+    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
-// use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChargeCodePickerModal {
     pub input: String,
@@ -16,17 +15,23 @@ pub struct ChargeCodePickerModal {
     pub filtered_codes: Vec<String>,
     pub is_active: bool,
     pub selected_charge_code_id: Option<i32>,
+    pub list_state: ListState,
 }
 
 impl ChargeCodePickerModal {
     pub fn new(charge_codes: &[ChargeCode]) -> Self {
         let charge_code_names = charge_codes.iter().map(|x| x.alias.clone()).collect();
+        let mut list_state = ListState::default();
+        if !charge_codes.is_empty(){
+            list_state.select(Some(0))
+        }
         Self {
             input: String::new(),
             charge_codes: charge_codes.to_vec(),
             filtered_codes: charge_code_names,
             is_active: false,
             selected_charge_code_id: None,
+            list_state
         }
     }
 
@@ -38,18 +43,66 @@ impl ChargeCodePickerModal {
         self.is_active = !self.is_active;
     }
 
+    fn update_selection_to_first(&mut self) {
+        if !self.filtered_codes.is_empty(){
+            self.list_state.select(Some(0));
+        }
+    }
+
     pub fn update_input(&mut self, input: String) {
         self.input = input;
-        // Here you would add your fuzzy finding logic
-        // self.filtered_codes = self
-        //     .charge_codes
-        //     .iter()
-        //     .filter(|code| code.alias.to_lowercase().contains(&self.input.to_lowercase()))
-        //     .collect();
+        self.filtered_codes = self
+            .charge_codes
+            .iter()
+            .filter(|code| {
+                code.alias
+                    .to_lowercase()
+                    .contains(&self.input.to_lowercase())
+            })
+            .map(|code| code.alias.clone())
+            .collect();
+        self.update_selection_to_first()
     }
+
     pub fn handle_char(&mut self, c: char) {
         self.input.push(c);
         self.update_input(self.input.clone());
+    }
+
+    fn delete_previous_word(&mut self) {
+        if let Some(pos) = self.input.rfind(' ') {
+            self.input.truncate(pos);
+        } else {
+            self.input.clear();
+        }
+    }
+
+    pub fn previous(&mut self) {
+        let i = match self.list_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.filtered_codes.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.list_state.select(Some(i));
+    }
+
+    pub fn next(&mut self) {
+        let i = match self.list_state.selected() {
+            Some(i) => {
+                if i >= self.filtered_codes.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.list_state.select(Some(i));
     }
 }
 
@@ -90,19 +143,23 @@ impl Component for ChargeCodePickerModal {
             };
 
             // Create and draw the list of charge codes
+            let list_block = Block::default().borders(Borders::ALL);
+            let item_style = Style::default().fg(Color::DarkGray);
             let list_items: Vec<ListItem> = self
                 .filtered_codes
                 .iter()
-                .map(|code| ListItem::new(code.as_str()))
+                .map(|code| ListItem::new(code.clone()).style(item_style))
                 .collect();
-            let list_block = Block::default().borders(Borders::ALL);
+
+
             let list = List::new(list_items)
                 .block(list_block)
-                .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-                .highlight_symbol(">>"); // Customize the highlight symbol
+                .style(Style::default().fg(Color::Yellow))
+                .highlight_style(Style::default().fg(Color::White))
+                .repeat_highlight_symbol(true)
+                .highlight_symbol(">");
 
-            // Render the list inside the modal area, below the input
-            f.render_widget(list, list_area);
+            f.render_stateful_widget(list, list_area, &mut self.list_state);
 
             Ok(())
         } else {
@@ -111,27 +168,50 @@ impl Component for ChargeCodePickerModal {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        match key.code {
-            KeyCode::Char(c) => {
-                self.handle_char(c);
-            }
-            KeyCode::Backspace => {
-                self.input.pop();
+        match key {
+            KeyEvent {
+                code: KeyCode::Char('w'),
+                modifiers: KeyModifiers::CONTROL,
+                kind: KeyEventKind::Press,
+                state: KeyEventState::NONE,
+            } => {
+                self.delete_previous_word(); // A method to delete the previous word
                 self.update_input(self.input.clone());
             }
-            KeyCode::Enter => {
-                // Here you would handle the selection
-                // For now, let's just print the selected charge code to the console
-                if let Some(selection) = self.filtered_codes.first() {
-                    // TODO:
-                    println!("Selected charge code: {}", selection);
+            KeyEvent {
+                code: KeyCode::Tab,
+                modifiers: KeyModifiers::SHIFT,
+                kind: KeyEventKind::Press,
+                state: KeyEventState::NONE,
+            } => {
+                self.previous();
+            }
+            _ => match key.code {
+                KeyCode::Char(c) => {
+                    self.handle_char(c);
                 }
-                self.toggle(); // Close the modal after selection
-            }
-            KeyCode::Esc => {
-                self.toggle(); // Close the modal without selection
-            }
-            _ => {}
+                KeyCode::Backspace => {
+                    self.input.pop();
+                    self.update_input(self.input.clone());
+                }
+                KeyCode::Enter => {
+                    if let Some(selection) = self.filtered_codes.first() {
+                        // TODO: handle selection
+                        println!("Selected charge code: {}", selection);
+                    }
+                    self.toggle();
+                }
+                KeyCode::Esc => {
+                    self.toggle();
+                }
+                KeyCode::Tab | KeyCode::Down => {
+                    self.next();
+                }
+                KeyCode::Up => {
+                    self.previous();
+                }
+                _ => {}
+            },
         }
         Ok(None)
     }
