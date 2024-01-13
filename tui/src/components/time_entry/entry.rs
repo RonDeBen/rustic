@@ -1,17 +1,20 @@
-use std::time::SystemTime;
-
-use crate::{components::Component, tui::Frame, action::{Action, UIAct}};
+use super::time_utils::format_millis;
+use crate::api_client::models::time_entry::{ChargeCodeVM, TimeEntryVM as ApiTimeEntry};
+use crate::{
+    action::{Action, UIAct},
+    components::Component,
+    tui::Frame,
+};
 use chrono::{Duration, NaiveDateTime, TimeZone, Utc};
 use color_eyre::eyre::Result;
 use ratatui::{prelude::*, widgets::*};
+use std::time::SystemTime;
 use tokio::time::Instant;
-
-use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimeEntry {
     pub id: i32,
-    pub charge_code: String,
+    pub charge_code: Option<ChargeCodeVM>,
     pub elapsed_time: Duration,
     pub is_active: bool,
     pub is_selected: bool,
@@ -23,7 +26,7 @@ impl From<&ApiTimeEntry> for TimeEntry {
     fn from(value: &ApiTimeEntry) -> Self {
         Self {
             id: value.id,
-            charge_code: value.id.to_string(),
+            charge_code: value.charge_code.to_owned(),
             elapsed_time: Duration::milliseconds(value.total_time as i64),
             is_active: value.is_active,
             is_selected: false,
@@ -62,7 +65,7 @@ impl Default for TimeEntry {
     fn default() -> Self {
         Self {
             id: -1,
-            charge_code: "Project Mgmt".to_string(),
+            charge_code: None,
             elapsed_time: Duration::zero(),
             is_active: false,
             is_selected: false,
@@ -78,16 +81,7 @@ impl TimeEntry {
     }
 
     fn format_duration(&self) -> String {
-        let total_milliseconds = self.total_milliseconds();
-        let hours = total_milliseconds / 3_600_000;
-        let minutes = (total_milliseconds % 3_600_000) / 60_000;
-        let seconds = (total_milliseconds % 60_000) / 1_000;
-        let milliseconds = total_milliseconds % 1_000;
-
-        format!(
-            "{:02}:{:02}:{:02}.{:03}",
-            hours, minutes, seconds, milliseconds
-        )
+        format_millis(&self.total_milliseconds())
     }
 
     fn get_border_style(&self) -> Style {
@@ -110,10 +104,17 @@ impl TimeEntry {
         }
     }
 
-    fn total_milliseconds(&self) -> i64 {
+    pub fn total_milliseconds(&self) -> i64 {
         match self.delta_time {
             Some(d) => (self.elapsed_time + d).num_milliseconds(),
             None => self.elapsed_time.num_milliseconds(),
+        }
+    }
+
+    fn charge_code_string(&self) -> &str {
+        match &self.charge_code {
+            Some(cc) => &cc.alias,
+            None => "(c) to edit charge code"
         }
     }
 }
@@ -165,9 +166,8 @@ impl Component for TimeEntry {
         f.render_widget(Paragraph::new(time_text), chunks[1]);
 
         // Render charge code
-        // let charge_code_text = Text::styled(&self.charge_code, Style::default());
-        let debug = format!("delta_time: {:?}", self.delta_time);
-        let charge_code_text = Text::styled(debug, Style::default());
+        // let charge_code_string = self.charge_code_string();
+        let charge_code_text = Text::styled(self.charge_code_string(), Style::default());
         f.render_widget(Paragraph::new(charge_code_text), chunks[2]);
 
         Ok(())

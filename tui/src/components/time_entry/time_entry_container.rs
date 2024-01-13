@@ -1,5 +1,10 @@
-use super::entry::TimeEntry;
-use crate::{action::{Action, UIAct}, api_client::ApiRequest::*, components::Component, tui::Frame};
+use super::{entry::TimeEntry, time_utils::format_millis};
+use crate::{
+    action::{Action, TTAct, UIAct},
+    api_client::ApiRequest::*,
+    components::Component,
+    tui::Frame,
+};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
@@ -26,6 +31,15 @@ impl TimeEntryContainer {
 
     pub fn get_selected_entry(&self) -> Option<&TimeEntry> {
         self.entries.get(self.selected_index)
+    }
+
+    fn calculate_total_millis(&self) -> i64 {
+        self.entries.iter().map(|e| e.total_milliseconds()).sum()
+    }
+
+    fn total_elapsed_time_string(&self) -> String {
+        let time_string = format_millis(&self.calculate_total_millis());
+        format!("Total Time: {}", time_string)
     }
 }
 
@@ -70,14 +84,12 @@ impl Component for TimeEntryContainer {
                             if let Some(tx) = &self.command_tx {
                                 tx.send(Action::api_request_action(PlayEntry { id: entry.id }))?;
                             }
-                            // entry.start_time = Some(Instant::now());
                         }
                         // went from play to pause
                         false => {
                             if let Some(tx) = &self.command_tx {
                                 tx.send(Action::api_request_action(PauseEntry { id: entry.id }))?;
                             }
-                            // entry.start_time = None;
                         }
                     }
 
@@ -103,6 +115,11 @@ impl Component for TimeEntryContainer {
                     tx.send(Action::api_request_action(DeleteEntry { id: entry.id }))?;
                 }
             }
+            KeyCode::Char('c') => {
+                if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
+                    tx.send(Action::TT(TTAct::EditChargeCode(entry.id)))?;
+                }
+            }
             _ => {}
         }
 
@@ -110,7 +127,9 @@ impl Component for TimeEntryContainer {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
-        let block = Block::default().title("Time Entries").borders(Borders::ALL);
+        let block = Block::default()
+            .title(self.total_elapsed_time_string())
+            .borders(Borders::ALL);
         f.render_widget(block, rect);
 
         let inner_area = rect.inner(&Margin {

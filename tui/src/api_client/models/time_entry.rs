@@ -10,8 +10,14 @@ pub struct TimeEntryVM {
     pub note: String,
     pub day: Day,
     pub is_active: bool,
-    pub charge_code: Option<String>,
+    pub charge_code: Option<ChargeCodeVM>,
     pub start_time: Option<NaiveDateTime>,
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct ChargeCodeVM {
+    pub id: i32,
+    pub alias: String,
 }
 
 impl Eq for TimeEntryVM {}

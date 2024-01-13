@@ -27,6 +27,7 @@ pub enum UIAct {
 pub enum TTAct {
     ChangeDay(Day),
     UpdateNote(String),
+    EditChargeCode(i32),
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]

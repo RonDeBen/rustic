@@ -1,6 +1,7 @@
 use super::{
-    notes::Notes, time_entry::time_entry_container::TimeEntryContainer, top_bar::layout::TopBar,
-    Component, Frame,
+    modals::charge_code_picker::ChargeCodePickerModal, notes::Notes,
+    time_entry::time_entry_container::TimeEntryContainer, top_bar::layout::TopBar, Component,
+    Frame,
 };
 use crate::{
     action::{
@@ -21,9 +22,12 @@ use tokio::sync::mpsc::UnboundedSender;
 pub struct Home<'a> {
     command_tx: Option<UnboundedSender<Action>>,
     config: Config,
+    // components
     top_bar: TopBar,
     time_entry_container: TimeEntryContainer,
     notes: Notes<'a>,
+    charge_code_modal: ChargeCodePickerModal,
+    // data
     full_state: FullState,
     current_day: Day,
 }
@@ -33,11 +37,13 @@ impl Home<'_> {
         let current_day = Day::get_current_day();
         let current_entries = starting_state.get_time_entries_for_day(current_day);
         let time_entry_container = TimeEntryContainer::new(current_entries, 0);
+        let charge_code_modal = ChargeCodePickerModal::new(starting_state.charge_codes.as_slice());
         Self {
             command_tx: None,
             config: Config::default(),
             top_bar: TopBar::new(current_day),
             time_entry_container,
+            charge_code_modal,
             notes: Notes::default(),
             full_state: starting_state,
             current_day,
@@ -77,7 +83,8 @@ impl Component for Home<'_> {
         self.top_bar.register_action_handler(tx.clone())?;
         self.time_entry_container
             .register_action_handler(tx.clone())?;
-        self.notes.register_action_handler(tx)?;
+        self.notes.register_action_handler(tx.clone())?;
+        self.charge_code_modal.register_action_handler(tx.clone())?;
 
         Ok(())
     }
@@ -92,7 +99,7 @@ impl Component for Home<'_> {
             Action::UI(ui_action) => match ui_action {
                 UIAct::Tick => {
                     self.time_entry_container.update(Action::UI(ui_action))?;
-                },
+                }
                 UIAct::Quit => {}
                 _ => {}
             },
@@ -102,6 +109,10 @@ impl Component for Home<'_> {
                     self.set_time_entries();
                 }
                 TTAct::UpdateNote(_new_note) => todo!(),
+                TTAct::EditChargeCode(id) => {
+                    self.charge_code_modal.set_charge_code_id(id);
+                    self.charge_code_modal.toggle();
+                }
             },
             Action::Api(api_action) => {
                 // only handle the responses here
@@ -117,6 +128,9 @@ impl Component for Home<'_> {
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         if self.notes.is_edit_mode {
             self.notes.handle_key_events(key)?;
+        }
+        if self.charge_code_modal.is_active {
+            self.charge_code_modal.handle_key_events(key)?;
         } else {
             if let KeyCode::Char('q') = key.code {
                 return Ok(Some(Action::UI(Quit)));
@@ -128,7 +142,7 @@ impl Component for Home<'_> {
 
         Ok(None)
     }
-    fn draw(&mut self, f: &mut Frame<'_>, _area: Rect) -> Result<()> {
+    fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let layout = Layout::new()
             .direction(Direction::Vertical)
             .constraints(vec![
@@ -141,6 +155,18 @@ impl Component for Home<'_> {
         self.top_bar.draw(f, layout[0])?;
         self.time_entry_container.draw(f, layout[1])?;
         self.notes.draw(f, layout[2])?;
+
+        // Draw the charge code picker modal on top of the other components if it's active
+        if self.charge_code_modal.is_active {
+            // You might need to adjust the area calculation depending on your layout
+            let modal_area = Rect {
+                x: area.x,
+                y: area.y,
+                width: area.width,
+                height: area.height,
+            };
+            self.charge_code_modal.draw(f, modal_area)?;
+        }
 
         Ok(())
     }

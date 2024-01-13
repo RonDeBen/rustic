@@ -17,6 +17,7 @@ pub struct ApiClient {
 pub enum ApiRequest {
     GetFullState,
     CreateTimeEntry,
+    UpdateChargeCode { time_entry_id: i32, charge_code_id: i32 },
     UpdateEntryNote { id: i32, note: String },
     PlayEntry { id: i32 },
     PauseEntry { id: i32 },
@@ -28,7 +29,6 @@ pub enum ApiResponse {
     FullState(FullState),
     DayEntriesUpdate(DayTimeEntries),
     TimeEntryUpdate(TimeEntryVM),
-    // TimeEntryCreate(TimeEntryVM),
 }
 
 impl ApiClient {
@@ -70,6 +70,14 @@ impl ApiClient {
                 ApiRequest::CreateTimeEntry => {
                     let rcv = self.create_time_entry().await?;
                     let response = ApiResponse::DayEntriesUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
+                ApiRequest::UpdateChargeCode { time_entry_id, charge_code_id } => {
+                    let rcv = self.update_time_entry_charge_code(*time_entry_id, *charge_code_id).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))
                         .unwrap();
@@ -141,6 +149,22 @@ impl ApiClient {
             .send()
             .await?
             .json::<DayTimeEntries>()
+            .await
+    }
+
+    pub async fn update_time_entry_charge_code(
+        &self,
+        time_entry_id: i32,
+        charge_code_id: i32,
+    ) -> Result<TimeEntryVM, reqwest::Error> {
+        self.client
+            .post(&format!(
+                "{}/time_entry/{}/charge_code/{}",
+                self.base_url, time_entry_id, charge_code_id
+            ))
+            .send()
+            .await?
+            .json::<TimeEntryVM>()
             .await
     }
 
