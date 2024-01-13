@@ -60,8 +60,8 @@ impl ChargeCodePickerModal {
 
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
+        self.update_input("".to_string());
         self.update_selection_to_first();
-        self.input.clear();
     }
 
     fn update_selection_to_first(&mut self) {
