@@ -10,13 +10,17 @@ use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     let pool = utils::connections::get_connection().await;
 
     let app = Router::new()
         .route("/full_state", get(get_everything_request))
-        // .route("/time_entries_by_day", get(get_time_entries_by_day_request))
         .route("/time_entries", get(get_time_entries_request))
         .route("/time_entry", post(create_time_entry_request))
+        .route(
+            "/time_entry/:id/charge_code/:code_id",
+            put(update_time_entry_charge_code_request),
+        )
         .route("/time_entry/:id", put(update_time_entry_note_request))
         .route("/time_entry/play/:id", put(play_time_entry_request))
         .route("/time_entry/pause/:id", put(pause_time_entry_request))

@@ -12,24 +12,7 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use serde::Deserialize;
 use sqlx::PgPool;
-use std::collections::HashMap;
-
-#[derive(Deserialize)]
-pub struct IdPath {
-    id: i32,
-}
-
-#[derive(Deserialize)]
-pub struct DayQuery {
-    day: i16,
-}
-
-#[derive(Deserialize)]
-pub struct NoteQuery {
-    note: String,
-}
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {
     let entries = fetch_all_time_entries(&pool).await?;
@@ -44,20 +27,11 @@ pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Resul
     Ok(Json(full_state))
 }
 
-pub async fn get_time_entries_by_day_request(
-    Extension(pool): Extension<PgPool>,
-) -> Result<Json<HashMap<Day, Vec<TimeEntryVM>>>> {
-    let entries = fetch_all_time_entries(&pool).await?;
-    let organized_entries = organize_time_entries_by_day(entries);
-
-    Ok(Json(organized_entries))
-}
-
 pub async fn get_time_entries_request(
-    Query(params): Query<DayQuery>,
+    Query(day): Query<i16>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<Vec<TimeEntryVM>>> {
-    let records = fetch_time_entries_for_day(&pool, params.day).await?;
+    let records = fetch_time_entries_for_day(&pool, day).await?;
     let vms: Vec<TimeEntryVM> = records.iter().map(|x| x.into()).collect();
 
     Ok(Json(vms))
@@ -66,7 +40,7 @@ pub async fn get_time_entries_request(
 pub async fn create_time_entry_request(
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let day = Day::get_current_day().ok_or(AppError::WeekendError)?;
+    let day = Day::get_current_day();
     let entry = create_time_entry(&pool, day).await?;
     let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
 
@@ -75,41 +49,49 @@ pub async fn create_time_entry_request(
     Ok(Json(day_time_entries))
 }
 
-pub async fn update_time_entry_note_request(
-    Path(params): Path<IdPath>,
-    Query(query): Query<NoteQuery>,
+pub async fn update_time_entry_charge_code_request(
+    Path((entry_id, charge_code_id)): Path<(i32, i32)>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<TimeEntryVM>> {
-    let entry = update_time_entry_note(&pool, params.id, query.note).await?;
+    update_charge_code_for_time_entry(&pool, entry_id, charge_code_id).await?;
+    let updated_entry = fetch_time_entry_by_id(&pool, entry_id).await?;
+    Ok(Json(updated_entry.into()))
+}
+
+pub async fn update_time_entry_note_request(
+    Path(id): Path<i32>,
+    Query(note): Query<String>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<TimeEntryVM>> {
+    update_time_entry_note(&pool, id, note).await?;
+    let entry = fetch_time_entry_by_id(&pool, id).await?;
 
     Ok(Json(entry.into()))
 }
 
 pub async fn play_time_entry_request(
-    Path(params): Path<IdPath>,
+    Path(id): Path<i32>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let entries = switch_to_timer(&pool, params.id).await?;
-    let print_entries: Vec<i32> = entries.entries.iter().map(|x| x.id).collect();
-    println!("in request: {:?}", print_entries);
+    let entries = switch_to_timer(&pool, id).await?;
     Ok(Json(entries))
 }
 
 pub async fn pause_time_entry_request(
-    Path(params): Path<IdPath>,
+    Path(id): Path<i32>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let entry = fetch_time_entry_by_id(&pool, params.id).await?;
+    let entry = fetch_time_entry_by_id(&pool, id).await?;
     let entries = pause_timer_and_get_entries(&pool, &entry).await?;
     Ok(Json(entries))
 }
 
 pub async fn delete_time_entry_request(
-    Path(params): Path<IdPath>,
+    Path(id): Path<i32>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let entry = fetch_time_entry_by_id(&pool, params.id).await?;
-    delete_time_entry(&pool, params.id).await?;
+    let entry = fetch_time_entry_by_id(&pool, id).await?;
+    delete_time_entry(&pool, id).await?;
     let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
     let day_time_entries = DayTimeEntries::new(entry.day, entries.as_slice());
     Ok(Json(day_time_entries))

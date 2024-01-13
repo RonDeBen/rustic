@@ -15,9 +15,6 @@ pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, s
     // start new timer
     let start_time: NaiveDateTime = Utc::now().naive_utc();
     let entries = play_and_fetch_day_entries(pool, id, start_time).await?;
-    let print_entries: Vec<i32> = entries.iter().map(|x| x.id).collect();
-    println!("after switch: {:?}", print_entries);
-
 
     let day = match entries.first() {
         Some(entry) => entry.day,
@@ -40,7 +37,6 @@ pub async fn pause_timer_and_get_entries(
 ) -> Result<DayTimeEntries, sqlx::Error> {
     let elapsed_time = get_elapsed_time(entry);
     let entries = pause_and_fetch_day_entries(pool, entry.id, elapsed_time).await?;
-
 
     Ok(DayTimeEntries::new(entry.day, entries.as_slice()))
 }
@@ -69,9 +65,6 @@ async fn play_and_fetch_day_entries(
     .await?;
 
     let entries = fetch_time_entries_for_day(pool, day).await?;
-    let print_entries: Vec<i32> = entries.iter().map(|x| x.id).collect();
-    println!("after fetch: {:?}", print_entries);
-
 
     Ok(entries)
 }

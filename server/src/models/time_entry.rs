@@ -9,6 +9,15 @@ pub struct TimeEntryRaw {
     pub total_time: i64, // milliseconds
     pub note: String,
     pub day: Day,
+    // Fields for charge code
+    pub charge_code_id: Option<i32>,
+    pub alias: Option<String>,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ChargeCodeVM {
+    pub id: i32,
+    pub alias: String,
 }
 
 #[derive(Serialize, Debug)]
@@ -19,10 +28,16 @@ pub struct TimeEntryVM {
     pub note: String,
     pub day: Day,
     pub is_active: bool,
+    pub charge_code: Option<ChargeCodeVM>,
 }
 
 impl From<TimeEntryRaw> for TimeEntryVM {
     fn from(value: TimeEntryRaw) -> Self {
+        let charge_code = match (value.charge_code_id, value.alias) {
+            (Some(id), Some(alias)) => Some(ChargeCodeVM { id, alias }),
+            _ => None,
+        };
+
         Self {
             id: value.id,
             total_time: value.total_time,
@@ -30,12 +45,17 @@ impl From<TimeEntryRaw> for TimeEntryVM {
             day: value.day,
             is_active: value.start_time.is_some(),
             start_time: value.start_time,
+            charge_code,
         }
     }
 }
 
 impl From<&TimeEntryRaw> for TimeEntryVM {
     fn from(value: &TimeEntryRaw) -> Self {
+        let charge_code = match (value.charge_code_id, value.alias.to_owned()) {
+            (Some(id), Some(alias)) => Some(ChargeCodeVM { id, alias }),
+            _ => None,
+        };
         Self {
             id: value.id,
             total_time: value.total_time,
@@ -43,6 +63,7 @@ impl From<&TimeEntryRaw> for TimeEntryVM {
             day: value.day,
             is_active: value.start_time.is_some(),
             start_time: value.start_time,
+            charge_code,
         }
     }
 }
@@ -59,15 +80,15 @@ pub enum Day {
 }
 
 impl Day {
-    pub fn get_current_day() -> Option<Self> {
+    pub fn get_current_day() -> Self {
         let today = Utc::now().date_naive().weekday();
         match today {
-            Weekday::Mon => Some(Day::Monday),
-            Weekday::Tue => Some(Day::Tuesday),
-            Weekday::Wed => Some(Day::Wednesday),
-            Weekday::Thu => Some(Day::Thursday),
-            Weekday::Fri => Some(Day::Friday),
-            _ => None,
+            Weekday::Mon => Day::Monday,
+            Weekday::Tue => Day::Tuesday,
+            Weekday::Wed => Day::Wednesday,
+            Weekday::Thu => Day::Thursday,
+            Weekday::Fri => Day::Friday,
+            _ => Day::Friday,
         }
     }
 }

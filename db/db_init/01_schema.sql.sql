@@ -1,18 +1,19 @@
 CREATE schema IF NOT EXISTS time_tracking;
 
-CREATE TABLE time_tracking.time_entries (
-    id SERIAL PRIMARY KEY,
-    start_time TIMESTAMP NULL,
-    total_time BIGINT,
-    note TEXT,
-    day SMALLINT
-);
-
-CREATE TABLE time_tracking.charge_codes (
+CREATE TABLE IF NOT EXISTS time_tracking.charge_codes (
     id SERIAL PRIMARY KEY,
     alias TEXT,
     code TEXT,
     is_nc BOOLEAN
+);
+
+CREATE TABLE IF NOT EXISTS time_tracking.time_entries (
+    id SERIAL PRIMARY KEY,
+    start_time TIMESTAMP NULL,
+    total_time BIGINT,
+    note TEXT,
+    day SMALLINT,
+    charge_code_id INTEGER NULL REFERENCES time_tracking.charge_codes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE time_tracking.time_entry_charge_code (
