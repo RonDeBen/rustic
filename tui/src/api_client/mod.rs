@@ -17,11 +17,23 @@ pub struct ApiClient {
 pub enum ApiRequest {
     GetFullState,
     CreateTimeEntry,
-    UpdateChargeCode { time_entry_id: i32, charge_code_id: i32 },
-    UpdateEntryNote { id: i32, note: String },
-    PlayEntry { id: i32 },
-    PauseEntry { id: i32 },
-    DeleteEntry { id: i32 },
+    UpdateChargeCode {
+        time_entry_id: i32,
+        charge_code_id: i32,
+    },
+    UpdateEntryNote {
+        id: i32,
+        note: String,
+    },
+    PlayEntry {
+        id: i32,
+    },
+    PauseEntry {
+        id: i32,
+    },
+    DeleteEntry {
+        id: i32,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
@@ -75,8 +87,13 @@ impl ApiClient {
                         .unwrap();
                     Ok(())
                 }
-                ApiRequest::UpdateChargeCode { time_entry_id, charge_code_id } => {
-                    let rcv = self.update_time_entry_charge_code(*time_entry_id, *charge_code_id).await?;
+                ApiRequest::UpdateChargeCode {
+                    time_entry_id,
+                    charge_code_id,
+                } => {
+                    let rcv = self
+                        .update_time_entry_charge_code(*time_entry_id, *charge_code_id)
+                        .await?;
                     let response = ApiResponse::TimeEntryUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))

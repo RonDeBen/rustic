@@ -2,6 +2,7 @@ use crate::{action::Action, api_client::ApiRequest::UpdateChargeCode};
 use crate::{api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+use ratatui::layout::Alignment;
 use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Style},
@@ -56,6 +57,7 @@ impl ChargeCodePickerModal {
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
         self.update_selection_to_first();
+        self.input.clear();
     }
 
     fn update_selection_to_first(&mut self) {
@@ -160,13 +162,10 @@ impl Component for ChargeCodePickerModal {
             f.render_widget(block, modal_area);
 
             // Draw the input box
-            let debug_text = format!(
-                "entry id: {:?}, cc id: {:?}, has tx: {:?}",
-                self.entry_id,
-                self.get_selected_charge_code_id(),
-                self.command_tx.is_some()
-            );
-            let input_block = Block::default().title(debug_text).borders(Borders::ALL);
+            let input_block = Block::default()
+                .title(" Find Charge Code ")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL);
             let input_paragraph = Paragraph::new(&*self.input)
                 .block(input_block)
                 .wrap(Wrap { trim: true });
@@ -205,25 +204,13 @@ impl Component for ChargeCodePickerModal {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        match key {
-            KeyEvent {
-                code: KeyCode::Char('w'),
-                modifiers: KeyModifiers::CONTROL,
-                kind: KeyEventKind::Press,
-                state: KeyEventState::NONE,
-            } => {
-                self.delete_previous_word(); // A method to delete the previous word
-                self.update_input(self.input.clone());
-            }
-            KeyEvent {
-                code: KeyCode::Tab,
-                modifiers: KeyModifiers::SHIFT,
-                kind: KeyEventKind::Press,
-                state: KeyEventState::NONE,
-            } => {
-                self.previous();
-            }
-            _ => match key.code {
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('w') {
+            self.delete_previous_word();
+            self.update_input(self.input.clone());
+        } else if key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::BackTab {
+            self.previous();
+        } else {
+            match key.code {
                 KeyCode::Char(c) => {
                     self.handle_char(c);
                 }
@@ -242,7 +229,6 @@ impl Component for ChargeCodePickerModal {
                             charge_code_id,
                         }))?;
                     }
-
                     self.toggle();
                 }
                 KeyCode::Esc => {
@@ -255,8 +241,9 @@ impl Component for ChargeCodePickerModal {
                     self.previous();
                 }
                 _ => {}
-            },
+            }
         }
+
         Ok(None)
     }
 }
