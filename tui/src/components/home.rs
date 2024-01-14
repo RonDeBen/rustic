@@ -1,7 +1,9 @@
 use super::{
-    modals::charge_code_picker::ChargeCodePickerModal, notes::Notes,
-    time_entry::time_entry_container::TimeEntryContainer, top_bar::layout::TopBar, Component,
-    Frame,
+    modals::{charge_code_picker::ChargeCodePickerModal, time_edit_modal::TimeEditModal},
+    notes::Notes,
+    time_entry::time_entry_container::TimeEntryContainer,
+    top_bar::layout::TopBar,
+    Component, Frame,
 };
 use crate::{
     action::{
@@ -27,6 +29,7 @@ pub struct Home<'a> {
     time_entry_container: TimeEntryContainer,
     notes: Notes<'a>,
     charge_code_modal: ChargeCodePickerModal,
+    time_edit_modal: TimeEditModal,
     // data
     full_state: FullState,
     current_day: Day,
@@ -44,6 +47,7 @@ impl Home<'_> {
             top_bar: TopBar::new(current_day),
             time_entry_container,
             charge_code_modal,
+            time_edit_modal: TimeEditModal::default(),
             notes: Notes::default(),
             full_state: starting_state,
             current_day,
@@ -85,6 +89,7 @@ impl Component for Home<'_> {
             .register_action_handler(tx.clone())?;
         self.notes.register_action_handler(tx.clone())?;
         self.charge_code_modal.register_action_handler(tx.clone())?;
+        self.time_edit_modal.register_action_handler(tx.clone())?;
 
         Ok(())
     }
@@ -113,6 +118,11 @@ impl Component for Home<'_> {
                     self.charge_code_modal.set_charge_code_id(id);
                     self.charge_code_modal.toggle();
                 }
+                TTAct::EditTime(time_action) => {
+                    self.time_edit_modal.set_time(time_action.millis);
+                    self.time_edit_modal.set_entry_id(time_action.id);
+                    self.time_edit_modal.toggle();
+                }
             },
             Action::Api(api_action) => {
                 // only handle the responses here
@@ -128,20 +138,24 @@ impl Component for Home<'_> {
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         if self.notes.is_edit_mode {
             self.notes.handle_key_events(key)?;
-        }
-        if self.charge_code_modal.is_active {
+        } else if self.charge_code_modal.is_active {
             self.charge_code_modal.handle_key_events(key)?;
+        } else if self.time_edit_modal.is_active {
+            self.time_edit_modal.handle_key_events(key)?;
         } else {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(Some(Action::UI(Quit)));
+            match key.code {
+                KeyCode::Char('q') => return Ok(Some(Action::UI(Quit))),
+                _ => {
+                    self.top_bar.handle_key_events(key)?;
+                    self.time_entry_container.handle_key_events(key)?;
+                    self.notes.handle_key_events(key)?;
+                }
             }
-            self.top_bar.handle_key_events(key)?;
-            self.time_entry_container.handle_key_events(key)?;
-            self.notes.handle_key_events(key)?;
         }
 
         Ok(None)
     }
+
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let layout = Layout::new()
             .direction(Direction::Vertical)
@@ -156,16 +170,12 @@ impl Component for Home<'_> {
         self.time_entry_container.draw(f, layout[1])?;
         self.notes.draw(f, layout[2])?;
 
-        // Draw the charge code picker modal on top of the other components if it's active
         if self.charge_code_modal.is_active {
-            // You might need to adjust the area calculation depending on your layout
-            let modal_area = Rect {
-                x: area.x,
-                y: area.y,
-                width: area.width,
-                height: area.height,
-            };
-            self.charge_code_modal.draw(f, modal_area)?;
+            self.charge_code_modal.draw(f, area)?;
+        }
+
+        if self.time_edit_modal.is_active {
+            self.time_edit_modal.draw(f, area)?;
         }
 
         Ok(())

@@ -64,6 +64,21 @@ pub async fn update_time_entry_charge_code_request(
     Ok(Json(updated_entry.into()))
 }
 
+#[derive(Deserialize)]
+pub struct EntryAndTimePath {
+    id: i32,
+    total_time: i64,
+}
+
+pub async fn update_time_entry_time_request(
+    Path(params): Path<EntryAndTimePath>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<TimeEntryVM>> {
+    update_time_for_time_entry(&pool, params.id, params.total_time).await?;
+    let updated_entry = fetch_time_entry_by_id(&pool, params.id).await?;
+    Ok(Json(updated_entry.into()))
+}
+
 pub async fn update_time_entry_note_request(
     Path(id): Path<i32>,
     Query(note): Query<String>,

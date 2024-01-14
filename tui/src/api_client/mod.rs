@@ -21,6 +21,10 @@ pub enum ApiRequest {
         time_entry_id: i32,
         charge_code_id: i32,
     },
+    SetTime {
+        id: i32,
+        millis: i64,
+    },
     UpdateEntryNote {
         id: i32,
         note: String,
@@ -108,6 +112,14 @@ impl ApiClient {
                         .unwrap();
                     Ok(())
                 }
+                ApiRequest::SetTime { id, millis } => {
+                    let rcv = self.update_time_entry_time(*id, *millis).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                }
                 ApiRequest::PlayEntry { id } => {
                     let rcv = self.play_entry(*id).await?;
                     let response = ApiResponse::DayEntriesUpdate(rcv);
@@ -178,6 +190,22 @@ impl ApiClient {
             .put(&format!(
                 "{}/time_entry/{}/charge_code/{}",
                 self.base_url, time_entry_id, charge_code_id
+            ))
+            .send()
+            .await?
+            .json::<TimeEntryVM>()
+            .await
+    }
+
+    pub async fn update_time_entry_time(
+        &self,
+        time_entry_id: i32,
+        total_time: i64,
+    ) -> Result<TimeEntryVM, reqwest::Error> {
+        self.client
+            .put(&format!(
+                "{}/time_entry/{}/time/{}",
+                self.base_url, time_entry_id, total_time
             ))
             .send()
             .await?

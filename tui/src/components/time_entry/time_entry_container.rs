@@ -1,6 +1,6 @@
 use super::{entry::TimeEntry, time_utils::format_millis};
 use crate::{
-    action::{Action, TTAct, UIAct},
+    action::{Action, EditTimeAction, TTAct, UIAct},
     api_client::ApiRequest::*,
     components::Component,
     tui::Frame,
@@ -108,7 +108,13 @@ impl Component for TimeEntryContainer {
                 }
             }
             KeyCode::Char('t') => {
-                //TODO: modify the timer on this entry
+                if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
+                    let edit_time_action = EditTimeAction {
+                        id: entry.id,
+                        millis: entry.total_milliseconds(),
+                    };
+                    tx.send(Action::edit_time_action(edit_time_action))?;
+                }
             }
             KeyCode::Char('d') => {
                 if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {

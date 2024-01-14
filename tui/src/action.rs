@@ -28,6 +28,13 @@ pub enum TTAct {
     ChangeDay(Day),
     UpdateNote(String),
     EditChargeCode(i32),
+    EditTime(EditTimeAction),
+}
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+pub struct EditTimeAction {
+    pub id: i32,
+    pub millis: i64
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
@@ -45,5 +52,8 @@ impl Action {
     pub fn api_request_action(request: ApiRequest) -> Self {
         Action::Api(ApiAct::Request(request))
     }
-}
 
+    pub fn edit_time_action(tt_act: EditTimeAction) -> Self {
+        Action::TT(TTAct::EditTime(tt_act))
+    }
+}

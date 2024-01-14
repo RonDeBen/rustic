@@ -3,9 +3,7 @@ use chrono::NaiveDateTime;
 use sqlx::{Executor, Postgres};
 use std::collections::HashMap;
 
-pub async fn fetch_all_time_entries<'e, E>(
-    exec: E,
-) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
+pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
@@ -94,7 +92,11 @@ where
     Ok(time_entry)
 }
 
-pub async fn update_charge_code_for_time_entry<'e, E>(exec: E, entry_id: i32, charge_code_id: i32) -> Result<(), sqlx::Error>
+pub async fn update_charge_code_for_time_entry<'e, E>(
+    exec: E,
+    entry_id: i32,
+    charge_code_id: i32,
+) -> Result<(), sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
@@ -102,10 +104,31 @@ where
     sqlx::query(
         "UPDATE time_tracking.time_entries
          SET charge_code_id = $2
-         WHERE id = $1"
+         WHERE id = $1",
     )
     .bind(entry_id)
     .bind(charge_code_id)
+    .execute(exec)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn update_time_for_time_entry<'e, E>(
+    exec: E,
+    entry_id: i32,
+    total_time: i64,
+) -> Result<(), sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query(
+        "UPDATE time_tracking.time_entries
+         SET total_time = $2
+         WHERE id = $1",
+    )
+    .bind(entry_id)
+    .bind(total_time)
     .execute(exec)
     .await?;
 
@@ -137,13 +160,11 @@ pub async fn play_time_entry<'e, E>(
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query(
-        "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING *",
-    )
-    .bind(start_time)
-    .bind(id)
-    .execute(exec)
-    .await?;
+    sqlx::query("UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING *")
+        .bind(start_time)
+        .bind(id)
+        .execute(exec)
+        .await?;
 
     Ok(())
 }
@@ -354,17 +375,17 @@ mod tests {
 
         assert_eq!(running_timers.len(), 1);
         assert_eq!(started_timer.id, running_timers.first().unwrap().id);
-pub async fn create_time_entry_request(
-    Extension(pool): Extension<PgPool>,
-) -> Result<Json<DayTimeEntries>> {
-    let day = Day::get_current_day().ok_or(AppError::WeekendError)?;
-    let entry = create_time_entry(&pool, day).await?;
-    let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
+        pub async fn create_time_entry_request(
+            Extension(pool): Extension<PgPool>,
+        ) -> Result<Json<DayTimeEntries>> {
+            let day = Day::get_current_day().ok_or(AppError::WeekendError)?;
+            let entry = create_time_entry(&pool, day).await?;
+            let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
 
-    let day_time_entries = DayTimeEntries::new(day, entries.as_slice());
+            let day_time_entries = DayTimeEntries::new(day, entries.as_slice());
 
-    Ok(Json(day_time_entries))
-}
+            Ok(Json(day_time_entries))
+        }
 
         tx.rollback().await.unwrap()
     }

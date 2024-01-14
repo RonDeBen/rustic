@@ -90,6 +90,8 @@ impl ChargeCodePickerModal {
             .into_iter()
             .map(|(_, alias, id)| ChargeCodeRef { alias, id })
             .collect();
+
+        self.update_selection_to_first();
     }
 
     pub fn handle_char(&mut self, c: char) {
