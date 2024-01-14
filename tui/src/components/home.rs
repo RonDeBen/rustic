@@ -40,7 +40,8 @@ impl Home<'_> {
     pub fn new(starting_state: FullState) -> Self {
         let current_day = Day::get_current_day();
         let current_entries = starting_state.get_time_entries_for_day(current_day);
-        let time_entry_container = TimeEntryContainer::new(current_entries, 0);
+        let mut time_entry_container = TimeEntryContainer::new(current_entries, 0);
+        time_entry_container.reset_selected_index();
         let charge_code_modal = ChargeCodePickerModal::new(starting_state.charge_codes.as_slice());
         Self {
             command_tx: None,
@@ -102,19 +103,28 @@ impl Component for Home<'_> {
 
     fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::UI(ui_action) => match ui_action {
-                UIAct::Tick => {
+            Action::UI(ui_action) => {
+                if ui_action == UIAct::Tick {
                     self.time_entry_container.update(Action::UI(ui_action))?;
                 }
-                UIAct::Quit => {}
-                _ => {}
-            },
+            }
             Action::TT(tt_action) => match tt_action {
                 TTAct::ChangeDay(day) => {
                     self.current_day = day;
                     self.set_time_entries();
+                    self.time_entry_container.reset_selected_index();
                 }
-                TTAct::UpdateNote(_new_note) => todo!(),
+                TTAct::UpdateNote(note_id) => {
+                    self.notes.set_id(note_id);
+                    let text = self
+                        .full_state
+                        .get_vms_for_day(self.current_day)
+                        .and_then(|entries| entries.iter().find(|e| e.id == note_id))
+                        .map_or("".to_string(), |entry| entry.note.clone());
+
+                    self.notes.set_text(text);
+
+                }
                 TTAct::EditChargeCode(id) => {
                     self.charge_code_modal.set_charge_code_id(id);
                     self.charge_code_modal.toggle();

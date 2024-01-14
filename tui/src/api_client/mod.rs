@@ -218,8 +218,10 @@ impl ApiClient {
         id: i32,
         note: String,
     ) -> Result<TimeEntryVM, reqwest::Error> {
+        let hmm = format!("{}/time_entry/{}/note", self.base_url, id);
+        println!("{}", hmm);
         self.client
-            .put(&format!("{}/time_entry/{}", self.base_url, id))
+            .put(&format!("{}/time_entry/{}/note", self.base_url, id))
             .query(&[("note", note)])
             .send()
             .await?

@@ -84,8 +84,10 @@ pub async fn update_time_entry_note_request(
     Query(note): Query<String>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<TimeEntryVM>> {
+    println!("updating entry {}, with note: {}", id, note);
     update_time_entry_note(&pool, id, note).await?;
     let entry = fetch_time_entry_by_id(&pool, id).await?;
+    println!("entry: {:?}", entry);
 
     Ok(Json(entry.into()))
 }

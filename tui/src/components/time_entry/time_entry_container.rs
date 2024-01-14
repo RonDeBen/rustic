@@ -29,6 +29,11 @@ impl TimeEntryContainer {
         self.entries = entries;
     }
 
+    pub fn reset_selected_index(&mut self) {
+        self.selected_index = 0;
+        self.send_note_action();
+    }
+
     pub fn get_selected_entry(&self) -> Option<&TimeEntry> {
         self.entries.get(self.selected_index)
     }
@@ -40,6 +45,12 @@ impl TimeEntryContainer {
     fn total_elapsed_time_string(&self) -> String {
         let time_string = format_millis(&self.calculate_total_millis());
         format!("Total Time: {}", time_string)
+    }
+
+    fn send_note_action(&mut self){
+        if let (Some(tx), Some(entry)) = (&self.command_tx,self.get_selected_entry()) {
+            tx.send(Action::TT(TTAct::UpdateNote(entry.id))).unwrap();
+        }
     }
 }
 
@@ -55,11 +66,13 @@ impl Component for TimeEntryContainer {
         }
         Ok(None)
     }
+
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.command_tx = Some(tx.clone());
 
         Ok(())
     }
+
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         match key.code {
@@ -67,11 +80,13 @@ impl Component for TimeEntryContainer {
                 if !self.entries.is_empty() {
                     self.selected_index =
                         (self.selected_index + self.entries.len() - 1) % self.entries.len();
+                    self.send_note_action();
                 }
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 if !self.entries.is_empty() {
                     self.selected_index = (self.selected_index + 1) % self.entries.len();
+                    self.send_note_action();
                 }
             }
             KeyCode::Char(' ') => {

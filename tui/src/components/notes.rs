@@ -1,14 +1,18 @@
 use super::Component;
+use crate::api_client::ApiRequest::UpdateEntryNote;
 use crate::{action::Action, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
+use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::TextArea;
 
 #[derive(Debug, Clone, Default)]
 pub struct Notes<'a> {
     pub editor: TextArea<'a>,
     pub is_edit_mode: bool,
+    entry_id: i32,
+    command_tx: Option<UnboundedSender<Action>>,
 }
 
 impl Notes<'_> {
@@ -18,6 +22,10 @@ impl Notes<'_> {
 
     pub fn set_text(&mut self, text: String) {
         self.editor = TextArea::new(text.lines().map(ToString::to_string).collect());
+    }
+
+    pub fn set_id(&mut self, id: i32) {
+        self.entry_id = id;
     }
 
     pub fn get_text(&self) -> String {
@@ -54,6 +62,13 @@ impl Component for Notes<'_> {
         if self.is_edit_mode {
             match key.code {
                 KeyCode::Esc => {
+                    if let Some(tx) = &self.command_tx {
+                        let update_note_action = UpdateEntryNote {
+                            id: self.entry_id,
+                            note: self.get_text(),
+                        };
+                        tx.send(Action::api_request_action(update_note_action))?;
+                    }
                     self.is_edit_mode = false;
                 }
                 _ => {
@@ -66,5 +81,11 @@ impl Component for Notes<'_> {
         }
 
         Ok(None)
+    }
+
+    fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
+        self.command_tx = Some(tx);
+
+        Ok(())
     }
 }

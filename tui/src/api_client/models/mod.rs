@@ -35,4 +35,8 @@ impl FullState {
             None => Vec::default(),
         }
     }
+
+    pub fn get_vms_for_day(&self, day: Day) -> Option<&Vec<TimeEntryVM>> {
+        self.time_entries.get(&day)
+    }
 }

@@ -25,7 +25,7 @@ async fn main() {
             "/time_entry/:id/time/:total_time",
             put(update_time_entry_time_request),
         )
-        .route("/time_entry/:id", put(update_time_entry_note_request))
+        .route("/time_entry/:id/note", put(update_time_entry_note_request))
         .route("/time_entry/play/:id", put(play_time_entry_request))
         .route("/time_entry/pause/:id", put(pause_time_entry_request))
         .route("/time_entry/:id", delete(delete_time_entry_request))

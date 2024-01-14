@@ -26,7 +26,7 @@ pub enum UIAct {
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
 pub enum TTAct {
     ChangeDay(Day),
-    UpdateNote(String),
+    UpdateNote(i32),
     EditChargeCode(i32),
     EditTime(EditTimeAction),
 }
@@ -34,8 +34,14 @@ pub enum TTAct {
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
 pub struct EditTimeAction {
     pub id: i32,
-    pub millis: i64
+    pub millis: i64,
 }
+
+// #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
+// pub struct EditNoteAction {
+//     pub id: i32,
+//     pub text: String,
+// }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
 pub enum ApiAct {
