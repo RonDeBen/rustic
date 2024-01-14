@@ -1,4 +1,5 @@
 use crate::components::Component;
+use crate::components::component_utils::draw_tooltip_bar;
 use crate::{action::Action, api_client::ApiRequest::SetTime};
 use chrono::offset;
 use color_eyre::eyre::Result;
@@ -202,8 +203,9 @@ impl Component for TimeEditModal {
         if !self.is_active {
             Ok(())
         } else {
+
             let horizontal_margin = (area.width as f32 * 0.2) as u16;
-            let vertical_margin = (area.height as f32 * 0.30) as u16;
+            let vertical_margin = (area.height as f32 * 0.2) as u16;
 
             // Define the size and position of the modal
             let modal_area = area.inner(&Margin {
@@ -221,8 +223,20 @@ impl Component for TimeEditModal {
                 .border_style(Style::default().fg(Color::Yellow));
             f.render_widget(block, modal_area);
 
+            // Define the area for the bottom bar within the modal
+            let bottom_bar_area = Rect {
+                x: modal_area.x,
+                y: modal_area.y + modal_area.height - 3, // Position the bottom bar 3 rows from the bottom
+                width: modal_area.width,
+                height: 3, // Height of the bottom bar (3 rows)
+            };
+
+            // Draw the tooltips in the bottom bar
+            let tooltips = vec!["Set Time [Enter]", "Back [Esc]"];
+            draw_tooltip_bar(f, bottom_bar_area, &tooltips);
+
             let horizontal_margin = (modal_area.width as f32 * 0.1) as u16;
-            let vertical_margin = (modal_area.height as f32 * 0.15) as u16;
+            let vertical_margin = (modal_area.height as f32 * 0.2) as u16;
 
             let timer_area = modal_area.inner(&Margin {
                 horizontal: horizontal_margin,
@@ -293,3 +307,4 @@ impl Component for TimeEditModal {
         Ok(())
     }
 }
+

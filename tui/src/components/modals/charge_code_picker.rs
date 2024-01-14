@@ -1,3 +1,4 @@
+use crate::components::component_utils::draw_tooltip_bar;
 use crate::{action::Action, api_client::ApiRequest::UpdateChargeCode};
 use crate::{api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
@@ -151,15 +152,29 @@ impl Component for ChargeCodePickerModal {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        if self.is_active {
+        if !self.is_active {
+            Ok(())
+        }else {
+
+            let horizontal_margin = (area.width as f32 * 0.1) as u16;
+            let vertical_margin = (area.height as f32 * 0.1) as u16;
+
             // Define the size and position of the modal
             let modal_area = area.inner(&Margin {
-                horizontal: area.width / 4,
-                vertical: area.height / 4,
+                horizontal: horizontal_margin,
+                vertical: vertical_margin,
             });
 
             // Clear the area before rendering the modal to ensure it's on top
             f.render_widget(Clear, modal_area);
+
+            // Define the area for the bottom bar within the modal
+            let bottom_bar_area = Rect {
+                x: modal_area.x,
+                y: modal_area.y + modal_area.height - 3, // Position the bottom bar 3 rows from the bottom
+                width: modal_area.width,
+                height: 3, // Height of the bottom bar (3 rows)
+            };
 
             // Create a block for the modal
             let block = Block::default()
@@ -206,9 +221,10 @@ impl Component for ChargeCodePickerModal {
 
             f.render_stateful_widget(list, list_area, &mut self.list_state);
 
+            let tooltips = vec!["Select [Enter]", "Back [Esc]"];
+            draw_tooltip_bar(f, bottom_bar_area, &tooltips);
+
             Ok(())
-        } else {
-            Ok(()) // If the modal is not active, do nothing
         }
     }
 

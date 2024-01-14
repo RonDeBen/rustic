@@ -3,7 +3,7 @@ use super::{
     notes::Notes,
     time_entry::time_entry_container::TimeEntryContainer,
     top_bar::layout::TopBar,
-    Component, Frame,
+    Component, Frame, component_utils::draw_tooltip_bar,
 };
 use crate::{
     action::{
@@ -18,7 +18,10 @@ use crate::{
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::prelude::*;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders, Paragraph},
+};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Home<'a> {
@@ -157,27 +160,48 @@ impl Component for Home<'_> {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let top_bar_height = 3;
+        let bottom_bar_height = 3;
+
+        let remaining_space_height = area.height - top_bar_height - bottom_bar_height;
+
+        let time_entry_container_height = (remaining_space_height as f32 * 0.75) as u16;
+        let notes_height = remaining_space_height - time_entry_container_height;
+
         let layout = Layout::new()
             .direction(Direction::Vertical)
-            .constraints(vec![
-                Constraint::Percentage(5),
-                Constraint::Percentage(70),
-                Constraint::Percentage(20),
+            .constraints([
+                Constraint::Length(top_bar_height), // Fixed height for top bar
+                Constraint::Length(time_entry_container_height), // 75% of remaining space for time_entry_container
+                Constraint::Length(notes_height),                // Remaining space for notes
+                Constraint::Length(bottom_bar_height),           // Fixed height for bottom bar
             ])
-            .split(f.size());
+            .split(area);
 
         self.top_bar.draw(f, layout[0])?;
         self.time_entry_container.draw(f, layout[1])?;
+
+        // Draw the modals over the time entry container if they are active
+        if self.charge_code_modal.is_active {
+            self.charge_code_modal.draw(f, layout[1])?;
+        }
+        if self.time_edit_modal.is_active {
+            self.time_edit_modal.draw(f, layout[1])?;
+        }
+
         self.notes.draw(f, layout[2])?;
 
-        if self.charge_code_modal.is_active {
-            self.charge_code_modal.draw(f, area)?;
-        }
-
-        if self.time_edit_modal.is_active {
-            self.time_edit_modal.draw(f, area)?;
-        }
+        let tooltips = vec![
+            "Quit [q]",
+            "Add [a]",
+            "Delete [d]",
+            "Play/Pause [Space]",
+            "Code [c]",
+            "Time [t]",
+        ];
+        draw_tooltip_bar(f, layout[3], &tooltips);
 
         Ok(())
     }
 }
+

@@ -115,7 +115,7 @@ impl TimeEntry {
     fn charge_code_string(&self) -> &str {
         match &self.charge_code_name {
             Some(cc_name) => cc_name,
-            None => "(c) to edit charge code",
+            None => "(c) change charge code",
         }
     }
 }
