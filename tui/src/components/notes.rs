@@ -3,7 +3,7 @@ use crate::{action::Action, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-use tui_textarea::{TextArea};
+use tui_textarea::TextArea;
 
 #[derive(Debug, Clone, Default)]
 pub struct Notes<'a> {

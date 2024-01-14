@@ -1,16 +1,15 @@
-use crate::components::Component;
 use crate::components::component_utils::draw_tooltip_bar;
+use crate::components::Component;
 use crate::{action::Action, api_client::ApiRequest::SetTime};
-use chrono::offset;
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Alignment, Constraint, Direction, Layout};
-use ratatui::style::{Modifier, Stylize};
+use ratatui::style::Stylize;
 use ratatui::text::{Line, Span};
 use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, Paragraph},
     Frame,
 };
 use tokio::sync::mpsc::UnboundedSender;
@@ -203,7 +202,6 @@ impl Component for TimeEditModal {
         if !self.is_active {
             Ok(())
         } else {
-
             let horizontal_margin = (area.width as f32 * 0.2) as u16;
             let vertical_margin = (area.height as f32 * 0.2) as u16;
 
@@ -307,4 +305,3 @@ impl Component for TimeEditModal {
         Ok(())
     }
 }
-

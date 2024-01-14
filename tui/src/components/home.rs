@@ -1,9 +1,10 @@
 use super::{
+    component_utils::draw_tooltip_bar,
     modals::{charge_code_picker::ChargeCodePickerModal, time_edit_modal::TimeEditModal},
     notes::Notes,
     time_entry::time_entry_container::TimeEntryContainer,
     top_bar::layout::TopBar,
-    Component, Frame, component_utils::draw_tooltip_bar,
+    Component, Frame,
 };
 use crate::{
     action::{
@@ -18,10 +19,7 @@ use crate::{
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{
-    prelude::*,
-    widgets::{Block, Borders, Paragraph},
-};
+use ratatui::prelude::*;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Home<'a> {
@@ -204,4 +202,3 @@ impl Component for Home<'_> {
         Ok(())
     }
 }
-
