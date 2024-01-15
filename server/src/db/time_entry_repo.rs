@@ -156,21 +156,23 @@ where
     Ok(())
 }
 
-pub async fn play_time_entry<'e, E>(
+pub async fn play_time_entry_and_return_day<'e, E>(
     exec: E,
     id: i32,
     start_time: NaiveDateTime,
-) -> Result<(), sqlx::Error>
+) -> Result<i16, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,
 {
-    sqlx::query("UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING *")
-        .bind(start_time)
-        .bind(id)
-        .execute(exec)
-        .await?;
+    let (day,): (i16,) = sqlx::query_as(
+        "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING day",
+    )
+    .bind(start_time)
+    .bind(id)
+    .fetch_one(exec)
+    .await?;
 
-    Ok(())
+    Ok(day)
 }
 
 pub async fn pause_time_entry<'e, E>(exec: E, id: i32, elapsed_time: i64) -> Result<(), sqlx::Error>
@@ -282,7 +284,7 @@ mod tests {
 
         let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry(&mut *tx, entry.id, start_time)
+        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
@@ -303,7 +305,7 @@ mod tests {
 
         let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry(&mut *tx, entry.id, start_time)
+        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
@@ -316,7 +318,7 @@ mod tests {
         assert_eq!(paused_entry.total_time, ten_min_millis);
 
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry(&mut *tx, entry.id, start_time)
+        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
         let ten_min_millis = 600000;
@@ -371,25 +373,15 @@ mod tests {
         let _entry3 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
 
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry(&mut *tx, entry.id, start_time)
+        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
             .unwrap();
 
         let running_timers = fetch_all_running_timers(&mut *tx).await.unwrap();
+        let started_timer = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
 
         assert_eq!(running_timers.len(), 1);
         assert_eq!(started_timer.id, running_timers.first().unwrap().id);
-        pub async fn create_time_entry_request(
-            Extension(pool): Extension<PgPool>,
-        ) -> Result<Json<DayTimeEntries>> {
-            let day = Day::get_current_day().ok_or(AppError::WeekendError)?;
-            let entry = create_time_entry(&pool, day).await?;
-            let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
-
-            let day_time_entries = DayTimeEntries::new(day, entries.as_slice());
-
-            Ok(Json(day_time_entries))
-        }
 
         tx.rollback().await.unwrap()
     }

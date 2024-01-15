@@ -1,8 +1,9 @@
 use crate::db::charge_code_repo::fetch_charge_codes;
 use crate::db::time_entry_repo::update_time_entry_note;
 use crate::models::{DayTimeEntries, FullState};
-use crate::services::time_entry_service::{pause_timer_and_get_entries, switch_to_timer};
+use crate::services::time_entry_service::switch_to_timer;
 use crate::utils::error::Result;
+use crate::utils::time::get_elapsed_time;
 use crate::{
     db::time_entry_repo::*,
     models::time_entry::{Day, TimeEntryVM},
@@ -108,8 +109,13 @@ pub async fn pause_time_entry_request(
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
     let entry = fetch_time_entry_by_id(&pool, id).await?;
-    let entries = pause_timer_and_get_entries(&pool, &entry).await?;
-    Ok(Json(entries))
+    let elapsed_time = get_elapsed_time(&entry);
+    pause_time_entry(&pool, id, elapsed_time).await?;
+
+    let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
+    let day_entries = DayTimeEntries::new(entry.day, entries.as_slice());
+
+    Ok(Json(day_entries))
 }
 
 pub async fn delete_time_entry_request(
