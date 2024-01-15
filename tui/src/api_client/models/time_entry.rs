@@ -1,5 +1,5 @@
 use super::day::Day;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
@@ -25,5 +25,18 @@ impl Eq for TimeEntryVM {}
 impl Hash for TimeEntryVM {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
+    }
+}
+
+impl TimeEntryVM {
+    pub fn real_total_time(&self) -> i64 {
+        let now: NaiveDateTime = Utc::now().naive_utc();
+        // let now = Utc::now().naive_utc();
+        let elapsed_since_start = self
+            .start_time
+            .map(|start| now.signed_duration_since(start).num_milliseconds())
+            .unwrap_or(0);
+
+        self.total_time + elapsed_since_start
     }
 }

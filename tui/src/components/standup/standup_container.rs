@@ -1,12 +1,15 @@
-use std::collections::HashMap;
-
 use crate::{
     api_client::models::{charge_code::ChargeCode, time_entry::TimeEntryVM},
     components::Component,
     tui::Frame,
 };
 use color_eyre::eyre::Result;
-use ratatui::{layout::{Constraint, Direction, Layout, Rect}, widgets::{Paragraph, Block, Borders, Wrap}, style::Style};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::Style,
+    widgets::{Block, Borders, Paragraph, Wrap},
+};
+use std::collections::HashMap;
 
 #[derive(Default)]
 pub struct StandupContainer {
@@ -24,11 +27,7 @@ impl StandupContainer {
         let mut aggregation: HashMap<i32, Vec<&TimeEntryVM>> = HashMap::new();
 
         for entry in entries {
-            let key = match &entry.charge_code {
-                Some(code) => code.id,
-                None => -1,
-            };
-
+            let key = entry.charge_code.as_ref().map_or(-1, |code| code.id);
             aggregation.entry(key).or_default().push(entry);
         }
 
@@ -37,9 +36,11 @@ impl StandupContainer {
         for (k, v) in aggregation {
             let notes = v
                 .iter()
-                .map(|entry| entry.note.clone())
+                .map(|entry| &entry.note)
+                .filter(|note| !note.is_empty())
+                .cloned()
                 .collect::<Vec<String>>()
-                .join("\n\n");
+                .join("\n");
 
             standup_entries.push(StandupEntry {
                 charge_code: get_code_from_id(charge_codes, k),
@@ -48,7 +49,15 @@ impl StandupContainer {
             });
         }
 
+        // make the output deterministic
+        standup_entries
+            .sort_by_key(|entry| entry.charge_code.as_ref().map_or(i32::MAX, |code| code.id));
+
         self.standup_entries = standup_entries;
+    }
+
+    pub fn clear_entries(&mut self) {
+        self.standup_entries.clear();
     }
 }
 
@@ -61,9 +70,9 @@ fn get_code_from_id(codes: &[ChargeCode], id: i32) -> Option<ChargeCode> {
 }
 
 fn sum_to_nearest_quarter_hour(entries: &[&TimeEntryVM]) -> u16 {
-    let total_time_millis: i64 = entries.iter().map(|entry| entry.total_time).sum();
+    let total_time_millis: i64 = entries.iter().map(|entry| entry.real_total_time()).sum();
     let total_minutes = total_time_millis / 1000 / 60; // Convert milliseconds to minutes
-    ((total_minutes as f64 / 15.0).round() * 15.0) as u16 // Round to nearest quarter hou
+    ((total_minutes as f64 / 15.0).round() * 15.0) as u16 // Round to nearest quarter hour
 }
 
 impl Component for StandupContainer {
