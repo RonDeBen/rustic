@@ -27,16 +27,14 @@ impl TimeEntryContainer {
 
     pub fn set_time_entries(&mut self, entries: Vec<TimeEntry>) {
         self.entries = entries;
-        self.send_note_action();
     }
 
-    pub fn reset_index(&mut self) {
-        self.selected_index = 0;
-        self.send_note_action();
+    pub fn set_index(&mut self, index: usize) {
+        self.selected_index = index;
     }
 
-    pub fn get_selected_entry(&self) -> Option<&TimeEntry> {
-        self.entries.get(self.selected_index)
+    pub fn get_selected_entry(&self) -> Option<TimeEntry> {
+        self.entries.get(self.selected_index).cloned()
     }
 
     fn calculate_total_millis(&self) -> i64 {
@@ -48,9 +46,9 @@ impl TimeEntryContainer {
         format!("Total Time: {}", time_string)
     }
 
-    fn send_note_action(&mut self) {
-        if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
-            tx.send(Action::TT(TTAct::UpdateNote(entry.id))).unwrap();
+    pub fn send_index_action(&mut self) {
+        if let Some(tx) = &self.command_tx {
+            tx.send(Action::TT(TTAct::UpdateSelectedEntry)).unwrap();
         }
     }
 }
@@ -80,13 +78,13 @@ impl Component for TimeEntryContainer {
                 if !self.entries.is_empty() {
                     self.selected_index =
                         (self.selected_index + self.entries.len() - 1) % self.entries.len();
-                    self.send_note_action();
+                    self.send_index_action();
                 }
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 if !self.entries.is_empty() {
                     self.selected_index = (self.selected_index + 1) % self.entries.len();
-                    self.send_note_action();
+                    self.send_index_action();
                 }
             }
             KeyCode::Char(' ') => {

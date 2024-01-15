@@ -29,7 +29,7 @@ pub enum UIAct {
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
 pub enum TTAct {
     ChangeDay(Day),
-    UpdateNote(i32),
+    UpdateSelectedEntry,
     EditChargeCode(i32),
     EditTime(EditTimeAction),
     UpdateMode(Mode),
