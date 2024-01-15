@@ -14,6 +14,8 @@ pub struct TimeEntryContainer {
     entries: Vec<TimeEntry>,
     selected_index: usize,
     command_tx: Option<UnboundedSender<Action>>,
+    scroll_position: usize,
+    rect: Rect,
 }
 
 impl TimeEntryContainer {
@@ -22,6 +24,8 @@ impl TimeEntryContainer {
             entries,
             selected_index,
             command_tx: None,
+            scroll_position: 0,
+            rect: Rect::default(),
         }
     }
 
@@ -51,6 +55,27 @@ impl TimeEntryContainer {
             tx.send(Action::TT(TTAct::UpdateSelectedEntry)).unwrap();
         }
     }
+
+    fn adjust_scroll_position(&mut self, num_visible_entries: usize) {
+        let num_entries = self.entries.len();
+        if num_entries <= num_visible_entries {
+            self.scroll_position = 0;
+            return;
+        }
+        self.scroll_position = if self.selected_index >= num_visible_entries / 2 {
+            std::cmp::min(
+                self.selected_index - num_visible_entries / 2,
+                num_entries - num_visible_entries,
+            )
+        } else {
+            0
+        };
+    }
+
+    fn calculate_num_visible_entries(&self) -> usize {
+        let entry_height = 3; // Assuming each entry takes 3 lines
+        self.rect.height as usize / entry_height
+    }
 }
 
 impl Component for TimeEntryContainer {
@@ -73,17 +98,25 @@ impl Component for TimeEntryContainer {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
+        let num_visible_entries = self.calculate_num_visible_entries();
+        let num_entries = self.entries.len();
+
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
                 if !self.entries.is_empty() {
-                    self.selected_index =
-                        (self.selected_index + self.entries.len() - 1) % self.entries.len();
+                    self.selected_index = if self.selected_index == 0 {
+                        num_entries - 1 // Wrap to the end
+                    } else {
+                        self.selected_index - 1
+                    };
+                    self.adjust_scroll_position(num_visible_entries);
                     self.send_index_action();
                 }
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 if !self.entries.is_empty() {
-                    self.selected_index = (self.selected_index + 1) % self.entries.len();
+                    self.selected_index = (self.selected_index + 1) % num_entries; // Wrap to the beginning
+                    self.adjust_scroll_position(num_visible_entries);
                     self.send_index_action();
                 }
             }
@@ -146,6 +179,8 @@ impl Component for TimeEntryContainer {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {
+        self.rect = rect;
+
         let block = Block::default()
             .title(self.total_elapsed_time_string())
             .borders(Borders::ALL);
@@ -155,31 +190,26 @@ impl Component for TimeEntryContainer {
             vertical: 1,
             horizontal: 1,
         });
-        let entry_height = 3; // Adjust this based on how much space you want each entry to take
 
-        // Check if there are more entries than the area can fit, adjust layout accordingly
-        let total_height_needed = self.entries.len() as u16 * entry_height;
-        let scrollable = total_height_needed > inner_area.height;
+        let entry_height = 3; // Assuming each entry takes 3 lines
+        let num_visible_entries = inner_area.height as usize / entry_height;
 
-        // Create a layout for the entries
-        let constraints = if scrollable {
-            vec![Constraint::Min(entry_height)]
-        } else {
-            self.entries
-                .iter()
-                .map(|_| Constraint::Length(entry_height))
-                .collect()
-        };
-
+        // Create constraints for the visible entries
+        let constraints: Vec<Constraint> =
+            vec![Constraint::Length(entry_height as u16); num_visible_entries];
         let entry_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints(constraints)
             .split(inner_area);
 
-        for (i, entry) in self.entries.iter_mut().enumerate() {
-            if let Some(chunk) = entry_chunks.get(i) {
-                entry.is_selected = i == self.selected_index;
-                entry.draw(f, *chunk)?;
+        let start_index = self.scroll_position;
+        let end_index = std::cmp::min(start_index + num_visible_entries, self.entries.len());
+
+        for i in start_index..end_index {
+            let entry_index = i % self.entries.len(); // Wrap around the index
+            if let Some(chunk) = entry_chunks.get(i - start_index) {
+                self.entries[entry_index].is_selected = entry_index == self.selected_index;
+                self.entries[entry_index].draw(f, *chunk)?;
             }
         }
 
