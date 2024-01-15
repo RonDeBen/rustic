@@ -47,6 +47,11 @@ pub enum ApiResponse {
     TimeEntryUpdate(TimeEntryVM),
 }
 
+#[derive(Serialize, Deserialize)]
+struct NotePaylaod {
+    note: String,
+}
+
 impl ApiClient {
     pub fn new(base_url: String) -> Self {
         ApiClient {
@@ -218,11 +223,9 @@ impl ApiClient {
         id: i32,
         note: String,
     ) -> Result<TimeEntryVM, reqwest::Error> {
-        let hmm = format!("{}/time_entry/{}/note", self.base_url, id);
-        println!("{}", hmm);
         self.client
             .put(&format!("{}/time_entry/{}/note", self.base_url, id))
-            .query(&[("note", note)])
+            .json(&NotePaylaod { note })
             .send()
             .await?
             .json::<TimeEntryVM>()

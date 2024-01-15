@@ -27,9 +27,10 @@ impl TimeEntryContainer {
 
     pub fn set_time_entries(&mut self, entries: Vec<TimeEntry>) {
         self.entries = entries;
+        self.send_note_action();
     }
 
-    pub fn reset_selected_index(&mut self) {
+    pub fn reset_index(&mut self) {
         self.selected_index = 0;
         self.send_note_action();
     }
@@ -47,8 +48,8 @@ impl TimeEntryContainer {
         format!("Total Time: {}", time_string)
     }
 
-    fn send_note_action(&mut self){
-        if let (Some(tx), Some(entry)) = (&self.command_tx,self.get_selected_entry()) {
+    fn send_note_action(&mut self) {
+        if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
             tx.send(Action::TT(TTAct::UpdateNote(entry.id))).unwrap();
         }
     }
@@ -72,7 +73,6 @@ impl Component for TimeEntryContainer {
 
         Ok(())
     }
-
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         match key.code {

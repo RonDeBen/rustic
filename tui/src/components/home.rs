@@ -40,8 +40,7 @@ impl Home<'_> {
     pub fn new(starting_state: FullState) -> Self {
         let current_day = Day::get_current_day();
         let current_entries = starting_state.get_time_entries_for_day(current_day);
-        let mut time_entry_container = TimeEntryContainer::new(current_entries, 0);
-        time_entry_container.reset_selected_index();
+        let time_entry_container = TimeEntryContainer::new(current_entries, 0);
         let charge_code_modal = ChargeCodePickerModal::new(starting_state.charge_codes.as_slice());
         Self {
             command_tx: None,
@@ -59,6 +58,25 @@ impl Home<'_> {
     fn set_time_entries(&mut self) {
         self.time_entry_container
             .set_time_entries(self.full_state.get_time_entries_for_day(self.current_day));
+
+        // this will reset the note whenever time entries get set (all the time)
+        // this also handles updating the notes when switching days
+        let id = match self.time_entry_container.get_selected_entry() {
+            Some(entry) => entry.id,
+            None => 0,
+        };
+        self.set_note_for_id(id);
+    }
+
+    fn set_note_for_id(&mut self, note_id: i32) {
+        self.notes.set_id(note_id);
+        let text = self
+            .full_state
+            .get_vms_for_day(self.current_day)
+            .and_then(|entries| entries.iter().find(|e| e.id == note_id))
+            .map_or("".to_string(), |entry| entry.note.clone());
+
+        self.notes.set_text(text);
     }
 
     fn handle_response(&mut self, respo: ApiResponse) {
@@ -93,6 +111,9 @@ impl Component for Home<'_> {
         self.charge_code_modal.register_action_handler(tx.clone())?;
         self.time_edit_modal.register_action_handler(tx.clone())?;
 
+        // will initialize the note to the right entry id at start
+        self.time_entry_container.reset_index();
+
         Ok(())
     }
 
@@ -112,18 +133,10 @@ impl Component for Home<'_> {
                 TTAct::ChangeDay(day) => {
                     self.current_day = day;
                     self.set_time_entries();
-                    self.time_entry_container.reset_selected_index();
+                    self.time_entry_container.reset_index();
                 }
                 TTAct::UpdateNote(note_id) => {
-                    self.notes.set_id(note_id);
-                    let text = self
-                        .full_state
-                        .get_vms_for_day(self.current_day)
-                        .and_then(|entries| entries.iter().find(|e| e.id == note_id))
-                        .map_or("".to_string(), |entry| entry.note.clone());
-
-                    self.notes.set_text(text);
-
+                    self.set_note_for_id(note_id);
                 }
                 TTAct::EditChargeCode(id) => {
                     self.charge_code_modal.set_charge_code_id(id);

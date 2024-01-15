@@ -11,7 +11,7 @@ use axum::{
     extract::{Path, Query},
     Extension, Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {
@@ -79,15 +79,18 @@ pub async fn update_time_entry_time_request(
     Ok(Json(updated_entry.into()))
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct NotePayload {
+    pub note: String,
+}
+
 pub async fn update_time_entry_note_request(
     Path(id): Path<i32>,
-    Query(note): Query<String>,
     Extension(pool): Extension<PgPool>,
+    Json(body): Json<NotePayload>,
 ) -> Result<Json<TimeEntryVM>> {
-    println!("updating entry {}, with note: {}", id, note);
-    update_time_entry_note(&pool, id, note).await?;
+    update_time_entry_note(&pool, id, body.note).await?;
     let entry = fetch_time_entry_by_id(&pool, id).await?;
-    println!("entry: {:?}", entry);
 
     Ok(Json(entry.into()))
 }

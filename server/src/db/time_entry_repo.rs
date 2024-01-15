@@ -37,6 +37,10 @@ pub fn organize_time_entries_by_day(entries: Vec<TimeEntryRaw>) -> HashMap<Day, 
         map.entry(entry.day).or_default().push(entry.into());
     }
 
+    for vms in map.values_mut() {
+        vms.sort_by(|a, b| a.id.cmp(&b.id));
+    }
+
     map
 }
 
