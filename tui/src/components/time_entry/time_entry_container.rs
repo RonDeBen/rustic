@@ -165,6 +165,17 @@ impl Component for TimeEntryContainer {
             KeyCode::Char('d') => {
                 if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
                     tx.send(Action::api_request_action(DeleteEntry { id: entry.id }))?;
+
+                    // state will get updated after this request is processed, but
+                    // removing for now so we can keep track of the selected index
+                    self.entries.remove(self.selected_index);
+
+                    // update selected index, if we're out of bounds after the deletion
+                    if self.selected_index >= self.entries.len() && !self.entries.is_empty() {
+                        self.selected_index = self.entries.len() - 1;
+                    } else if self.entries.is_empty() {
+                        self.selected_index = 0;
+                    }
                 }
             }
             KeyCode::Char('c') => {
