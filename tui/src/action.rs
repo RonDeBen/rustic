@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-use crate::api_client::{models::day::Day, ApiRequest, ApiResponse};
+use crate::{
+    api_client::{models::day::Day, ApiRequest, ApiResponse},
+    mode::Mode,
+};
 
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
 pub enum Action {
@@ -29,6 +32,7 @@ pub enum TTAct {
     UpdateNote(i32),
     EditChargeCode(i32),
     EditTime(EditTimeAction),
+    UpdateMode(Mode),
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
@@ -36,12 +40,6 @@ pub struct EditTimeAction {
     pub id: i32,
     pub millis: i64,
 }
-
-// #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]
-// pub struct EditNoteAction {
-//     pub id: i32,
-//     pub text: String,
-// }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Display, Deserialize, Debug)]
 pub enum ApiAct {

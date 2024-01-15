@@ -1,11 +1,13 @@
+use crate::{action::Action, components::Component, mode::Mode, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-use crate::{action::Action, mode::Mode, tui::Frame, components::Component};
-
-#[derive(Debug, Clone, PartialEq, Default)]
+use tokio::sync::mpsc::UnboundedSender;
+use crate::action::TTAct::UpdateMode;
+#[derive(Debug, Clone, Default)]
 pub struct ModeSelector {
     selected_mode: Mode,
+    command_tx: Option<UnboundedSender<Action>>,
 }
 
 impl ModeSelector {
@@ -15,6 +17,10 @@ impl ModeSelector {
 
     fn select_mode(&mut self, mode: Mode) {
         self.selected_mode = mode;
+        if let Some(tx) = &self.command_tx {
+            tx.send(Action::TT(UpdateMode(mode)))
+                .unwrap();
+        }
     }
 
     fn style_by_is_mode_selected(&mut self, mode: Mode) -> Style {
@@ -36,6 +42,12 @@ impl Component for ModeSelector {
             _ => {}
         };
         Ok(None)
+    }
+
+    fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
+        self.command_tx = Some(tx.clone());
+
+        Ok(())
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, rect: Rect) -> Result<()> {

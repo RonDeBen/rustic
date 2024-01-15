@@ -16,6 +16,7 @@ use crate::{
         ApiResponse,
     },
     config::Config,
+    mode::Mode,
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -34,6 +35,7 @@ pub struct Home<'a> {
     // data
     full_state: FullState,
     current_day: Day,
+    mode: Mode,
 }
 
 impl Home<'_> {
@@ -52,6 +54,7 @@ impl Home<'_> {
             notes: Notes::default(),
             full_state: starting_state,
             current_day,
+            mode: Mode::default(),
         }
     }
 
@@ -98,6 +101,55 @@ impl Home<'_> {
                 }
             }
         }
+    }
+
+    fn draw_crud_mode(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let top_bar_height = 3;
+        let bottom_bar_height = 3;
+
+        let remaining_space_height = area.height - top_bar_height - bottom_bar_height;
+
+        let time_entry_container_height = (remaining_space_height as f32 * 0.75) as u16;
+        let notes_height = remaining_space_height - time_entry_container_height;
+
+        let layout = Layout::new()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(top_bar_height), // Fixed height for top bar
+                Constraint::Length(time_entry_container_height), // 75% of remaining space for time_entry_container
+                Constraint::Length(notes_height),                // Remaining space for notes
+                Constraint::Length(bottom_bar_height),           // Fixed height for bottom bar
+            ])
+            .split(area);
+
+        self.top_bar.draw(f, layout[0])?;
+        self.time_entry_container.draw(f, layout[1])?;
+
+        // Draw the modals over the time entry container if they are active
+        if self.charge_code_modal.is_active {
+            self.charge_code_modal.draw(f, layout[1])?;
+        }
+        if self.time_edit_modal.is_active {
+            self.time_edit_modal.draw(f, layout[1])?;
+        }
+
+        self.notes.draw(f, layout[2])?;
+
+        let tooltips = vec![
+            "Quit [q]",
+            "Add [a]",
+            "Delete [d]",
+            "Play/Pause [Space]",
+            "Code [c]",
+            "Time [t]",
+        ];
+        draw_tooltip_bar(f, layout[3], &tooltips);
+
+        Ok(())
+    }
+
+    fn draw_standup_mode(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -147,6 +199,7 @@ impl Component for Home<'_> {
                     self.time_edit_modal.set_entry_id(time_action.id);
                     self.time_edit_modal.toggle();
                 }
+                TTAct::UpdateMode(mode) => self.mode = mode,
             },
             Action::Api(api_action) => {
                 // only handle the responses here
@@ -181,47 +234,9 @@ impl Component for Home<'_> {
     }
 
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let top_bar_height = 3;
-        let bottom_bar_height = 3;
-
-        let remaining_space_height = area.height - top_bar_height - bottom_bar_height;
-
-        let time_entry_container_height = (remaining_space_height as f32 * 0.75) as u16;
-        let notes_height = remaining_space_height - time_entry_container_height;
-
-        let layout = Layout::new()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(top_bar_height), // Fixed height for top bar
-                Constraint::Length(time_entry_container_height), // 75% of remaining space for time_entry_container
-                Constraint::Length(notes_height),                // Remaining space for notes
-                Constraint::Length(bottom_bar_height),           // Fixed height for bottom bar
-            ])
-            .split(area);
-
-        self.top_bar.draw(f, layout[0])?;
-        self.time_entry_container.draw(f, layout[1])?;
-
-        // Draw the modals over the time entry container if they are active
-        if self.charge_code_modal.is_active {
-            self.charge_code_modal.draw(f, layout[1])?;
+        match self.mode {
+            Mode::Crud => self.draw_crud_mode(f, area),
+            Mode::Standup => self.draw_standup_mode(f, area),
         }
-        if self.time_edit_modal.is_active {
-            self.time_edit_modal.draw(f, layout[1])?;
-        }
-
-        self.notes.draw(f, layout[2])?;
-
-        let tooltips = vec![
-            "Quit [q]",
-            "Add [a]",
-            "Delete [d]",
-            "Play/Pause [Space]",
-            "Code [c]",
-            "Time [t]",
-        ];
-        draw_tooltip_bar(f, layout[3], &tooltips);
-
-        Ok(())
     }
 }
