@@ -1,7 +1,7 @@
 use super::{entry::TimeEntry, time_utils::format_millis};
 use crate::{
     action::{Action, EditTimeAction, TTAct, UIAct},
-    api_client::ApiRequest::*,
+    api_client::{models::day::Day, ApiRequest::*},
     components::Component,
     tui::Frame,
 };
@@ -16,16 +16,18 @@ pub struct TimeEntryContainer {
     command_tx: Option<UnboundedSender<Action>>,
     scroll_position: usize,
     rect: Rect,
+    current_day: Day,
 }
 
 impl TimeEntryContainer {
-    pub fn new(entries: Vec<TimeEntry>, selected_index: usize) -> Self {
+    pub fn new(entries: Vec<TimeEntry>, selected_index: usize, current_day: Day) -> Self {
         Self {
             entries,
             selected_index,
             command_tx: None,
             scroll_position: 0,
             rect: Rect::default(),
+            current_day,
         }
     }
 
@@ -35,6 +37,10 @@ impl TimeEntryContainer {
 
     pub fn set_index(&mut self, index: usize) {
         self.selected_index = index;
+    }
+
+    pub fn set_day(&mut self, day: Day) {
+        self.current_day = day;
     }
 
     pub fn get_selected_entry(&self) -> Option<TimeEntry> {
@@ -150,7 +156,9 @@ impl Component for TimeEntryContainer {
             }
             KeyCode::Char('a') => {
                 if let Some(tx) = &self.command_tx {
-                    tx.send(Action::api_request_action(CreateTimeEntry))?;
+                    tx.send(Action::api_request_action(CreateTimeEntry {
+                        day: self.current_day.into(),
+                    }))?;
                 }
             }
             KeyCode::Char('t') => {

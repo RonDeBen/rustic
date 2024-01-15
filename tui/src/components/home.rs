@@ -44,7 +44,7 @@ impl Home<'_> {
     pub fn new(starting_state: FullState) -> Self {
         let current_day = Day::get_current_day();
         let current_entries = starting_state.get_time_entries_for_day(current_day);
-        let time_entry_container = TimeEntryContainer::new(current_entries, 0);
+        let time_entry_container = TimeEntryContainer::new(current_entries, 0, current_day);
         let charge_code_modal = ChargeCodePickerModal::new(starting_state.charge_codes.as_slice());
 
         Self {
@@ -216,6 +216,7 @@ impl Component for Home<'_> {
                     self.set_time_entries();
                     self.time_entry_container.set_index(0);
                     self.set_note_for_entry(self.time_entry_container.get_selected_entry());
+                    self.time_entry_container.set_day(day);
 
                     // standup stuff
                     self.update_standup_for_current_day();

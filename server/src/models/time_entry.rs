@@ -98,3 +98,16 @@ impl From<Day> for i16 {
         value as i16
     }
 }
+
+impl From<i16> for Day {
+    fn from(value: i16) -> Self {
+        match value {
+            0 => Day::Monday,
+            1 => Day::Tuesday,
+            2 => Day::Wednesday,
+            3 => Day::Thursday,
+            4 => Day::Friday,
+            _ => Day::Friday,
+        }
+    }
+}

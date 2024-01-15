@@ -16,7 +16,9 @@ pub struct ApiClient {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Display, Deserialize)]
 pub enum ApiRequest {
     GetFullState,
-    CreateTimeEntry,
+    CreateTimeEntry {
+        day: i16,
+    },
     UpdateChargeCode {
         time_entry_id: i32,
         charge_code_id: i32,
@@ -88,8 +90,8 @@ impl ApiClient {
                         .unwrap();
                     Ok(())
                 }
-                ApiRequest::CreateTimeEntry => {
-                    let rcv = self.create_time_entry().await?;
+                ApiRequest::CreateTimeEntry { day } => {
+                    let rcv = self.create_time_entry(*day).await?;
                     let response = ApiResponse::DayEntriesUpdate(rcv);
                     action_tx
                         .send(Action::api_response_action(response))
@@ -177,9 +179,9 @@ impl ApiClient {
             .await
     }
 
-    pub async fn create_time_entry(&self) -> Result<DayTimeEntries, reqwest::Error> {
+    pub async fn create_time_entry(&self, day: i16) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
-            .post(&format!("{}/time_entry", self.base_url))
+            .post(&format!("{}/time_entries/day/{}", self.base_url, day))
             .send()
             .await?
             .json::<DayTimeEntries>()
@@ -193,7 +195,7 @@ impl ApiClient {
     ) -> Result<TimeEntryVM, reqwest::Error> {
         self.client
             .put(&format!(
-                "{}/time_entry/{}/charge_code/{}",
+                "{}/time_entries/{}/charge_code/{}",
                 self.base_url, time_entry_id, charge_code_id
             ))
             .send()
@@ -209,7 +211,7 @@ impl ApiClient {
     ) -> Result<TimeEntryVM, reqwest::Error> {
         self.client
             .put(&format!(
-                "{}/time_entry/{}/time/{}",
+                "{}/time_entries/{}/time/{}",
                 self.base_url, time_entry_id, total_time
             ))
             .send()
@@ -224,7 +226,7 @@ impl ApiClient {
         note: String,
     ) -> Result<TimeEntryVM, reqwest::Error> {
         self.client
-            .put(&format!("{}/time_entry/{}/note", self.base_url, id))
+            .put(&format!("{}/time_entries/{}/note", self.base_url, id))
             .json(&NotePaylaod { note })
             .send()
             .await?
@@ -234,7 +236,7 @@ impl ApiClient {
 
     pub async fn play_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
-            .put(&format!("{}/time_entry/play/{}", self.base_url, id))
+            .put(&format!("{}/time_entries/{}/play", self.base_url, id))
             .send()
             .await?
             .json::<DayTimeEntries>()
@@ -243,7 +245,7 @@ impl ApiClient {
 
     pub async fn pause_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
-            .put(&format!("{}/time_entry/pause/{}", self.base_url, id))
+            .put(&format!("{}/time_entries/{}/pause", self.base_url, id))
             .send()
             .await?
             .json::<DayTimeEntries>()
@@ -252,7 +254,7 @@ impl ApiClient {
 
     pub async fn delete_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
         self.client
-            .delete(&format!("{}/time_entry/{}", self.base_url, id))
+            .delete(&format!("{}/time_entries/{}", self.base_url, id))
             .send()
             .await?
             .json::<DayTimeEntries>()
@@ -262,7 +264,7 @@ impl ApiClient {
 
 #[cfg(test)]
 mod tests {
-    use crate::api_client::ApiClient;
+    use crate::api_client::{models::day::Day, ApiClient};
 
     #[tokio::test]
     async fn can_create_time_entry() {
@@ -271,7 +273,7 @@ mod tests {
         let api_client = ApiClient::new(api_base_url);
 
         // Call the function under test
-        let result = api_client.create_time_entry().await;
+        let result = api_client.create_time_entry(Day::Monday.into()).await;
 
         // Check the result and print the error if it exists
         match result {

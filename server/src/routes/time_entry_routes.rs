@@ -4,14 +4,8 @@ use crate::models::{DayTimeEntries, FullState};
 use crate::services::time_entry_service::switch_to_timer;
 use crate::utils::error::Result;
 use crate::utils::time::get_elapsed_time;
-use crate::{
-    db::time_entry_repo::*,
-    models::time_entry::{Day, TimeEntryVM},
-};
-use axum::{
-    extract::{Path, Query},
-    Extension, Json,
-};
+use crate::{db::time_entry_repo::*, models::time_entry::TimeEntryVM};
+use axum::{extract::Path, Extension, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -28,24 +22,14 @@ pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Resul
     Ok(Json(full_state))
 }
 
-pub async fn get_time_entries_request(
-    Query(day): Query<i16>,
-    Extension(pool): Extension<PgPool>,
-) -> Result<Json<Vec<TimeEntryVM>>> {
-    let records = fetch_time_entries_for_day(&pool, day).await?;
-    let vms: Vec<TimeEntryVM> = records.iter().map(|x| x.into()).collect();
-
-    Ok(Json(vms))
-}
-
 pub async fn create_time_entry_request(
+    Path(day_num): Path<i16>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<DayTimeEntries>> {
-    let day = Day::get_current_day();
-    let entry = create_time_entry(&pool, day).await?;
-    let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
+    let _ = create_time_entry(&pool, day_num.into()).await?;
+    let entries = fetch_time_entries_for_day(&pool, day_num).await?;
 
-    let day_time_entries = DayTimeEntries::new(day, entries.as_slice());
+    let day_time_entries = DayTimeEntries::new(day_num.into(), entries.as_slice());
 
     Ok(Json(day_time_entries))
 }
