@@ -6,7 +6,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct TimeEntryVM {
     pub id: i32,
-    pub total_time: f64,
+    pub total_time: i64,
     pub note: String,
     pub day: Day,
     pub is_active: bool,

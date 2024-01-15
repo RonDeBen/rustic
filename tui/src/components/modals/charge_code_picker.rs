@@ -66,7 +66,6 @@ impl ChargeCodePickerModal {
     }
 
     fn update_selection_to_first(&mut self) {
-        //TODO: preserve selection, if it survived the filter??
         if !self.filtered_codes.is_empty() {
             self.list_state.select(Some(0));
         }
@@ -154,8 +153,7 @@ impl Component for ChargeCodePickerModal {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         if !self.is_active {
             Ok(())
-        }else {
-
+        } else {
             let horizontal_margin = (area.width as f32 * 0.1) as u16;
             let vertical_margin = (area.height as f32 * 0.1) as u16;
 

@@ -167,7 +167,6 @@ impl Component for TimeEntry {
         f.render_widget(Paragraph::new(time_text), chunks[1]);
 
         // Render charge code
-        // let charge_code_string = self.charge_code_string();
         let charge_code_text = Text::styled(self.charge_code_string(), Style::default());
         f.render_widget(Paragraph::new(charge_code_text), chunks[2]);
 

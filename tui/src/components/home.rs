@@ -2,6 +2,7 @@ use super::{
     component_utils::draw_tooltip_bar,
     modals::{charge_code_picker::ChargeCodePickerModal, time_edit_modal::TimeEditModal},
     notes::Notes,
+    standup::standup_container::StandupContainer,
     time_entry::time_entry_container::TimeEntryContainer,
     top_bar::layout::TopBar,
     Component, Frame,
@@ -32,6 +33,7 @@ pub struct Home<'a> {
     notes: Notes<'a>,
     charge_code_modal: ChargeCodePickerModal,
     time_edit_modal: TimeEditModal,
+    standup_container: StandupContainer,
     // data
     full_state: FullState,
     current_day: Day,
@@ -55,6 +57,7 @@ impl Home<'_> {
             full_state: starting_state,
             current_day,
             mode: Mode::default(),
+            standup_container: StandupContainer::default(),
         }
     }
 
@@ -149,6 +152,17 @@ impl Home<'_> {
     }
 
     fn draw_standup_mode(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let top_bar_height = 3;
+        let layout = Layout::new()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(top_bar_height),
+                Constraint::Min(0), // Remaining space for standup mode content
+            ])
+            .split(area);
+
+        self.top_bar.draw(f, layout[0])?;
+        self.standup_container.draw(f, layout[1])?;
         Ok(())
     }
 }
@@ -199,7 +213,15 @@ impl Component for Home<'_> {
                     self.time_edit_modal.set_entry_id(time_action.id);
                     self.time_edit_modal.toggle();
                 }
-                TTAct::UpdateMode(mode) => self.mode = mode,
+                TTAct::UpdateMode(mode) => {
+                    if let Some(current_days) = self.full_state.get_vms_for_day(self.current_day) {
+                        self.standup_container.aggregate_time_entries(
+                            current_days.as_slice(),
+                            self.full_state.charge_codes.as_slice(),
+                        );
+                    }
+                    self.mode = mode
+                }
             },
             Action::Api(api_action) => {
                 // only handle the responses here
