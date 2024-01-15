@@ -29,3 +29,6 @@ Holiday,FRNGE.HOL,false
 Praeses Praeses,FRNGE.PAS,false
 Sick,FRNGE.SCK,false
 Vacation,FRNGE.VAC,false
+Overhead - Business Technologies (BT),OVRHD.010.000,false
+Overhead - Gov,OVRHD.030.000,false
+Overhead - Gov Unallow,OVRHD.030.999,false
