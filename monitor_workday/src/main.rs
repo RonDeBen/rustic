@@ -1,32 +1,27 @@
 use notify_rust::Notification;
+// use shared_models::full_state::FullState;
 use tokio::time::{sleep, Duration};
+
+pub mod monitor_actions;
+pub mod utils;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+    pretty_env_logger::init();
 
     let check_interval = Duration::from_secs(600); // 10 minutes
 
     loop {
-        if check_work_hours().await {
-            send_notification()?;
-        };
         sleep(check_interval).await;
     }
 }
 
-async fn check_work_hours() -> bool {
-    //TODO:
-    // Use reqwest to make a request to your time tracking service
-    // Check if the work hours are close to 8 hours
-    // If yes, trigger the notification
-    false
-}
+// pub async fn get_full_state(&self) -> Result<FullState, reqwest::Error> {
+//     self.client
+//         .get(&format!("{}/full_state", self.base_url))
+//         .send()
+//         .await?
+//         .json::<FullState>()
+//         .await
+// }
 
-fn send_notification() -> Result<(), Box<dyn std::error::Error>> {
-    Notification::new()
-        .summary("Work Notification")
-        .body("You are close to 8 hours of work today.")
-        .show()?;
-    Ok(())
-}
