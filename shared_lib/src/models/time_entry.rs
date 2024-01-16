@@ -2,7 +2,7 @@ use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
-use crate::{charge_code::ChargeCodeVM, day::Day};
+use super::{charge_code::ChargeCodeVM, day::Day};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct TimeEntryVM {

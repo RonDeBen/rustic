@@ -7,7 +7,7 @@ use crate::{
     utils::time::get_elapsed_time,
 };
 use chrono::{NaiveDateTime, Utc};
-use shared_models::day::Day;
+use shared_lib::models::day::Day;
 use sqlx::PgPool;
 
 pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, sqlx::Error> {

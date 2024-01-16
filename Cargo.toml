@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "shared_models",
+    "shared_lib",
     "server",
     "tui",
     "monitor_workday"

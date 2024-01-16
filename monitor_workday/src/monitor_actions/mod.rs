@@ -1,4 +1,4 @@
-use shared_models::full_state::FullState;
+use shared_lib::models::full_state::FullState;
 
 pub mod monitor_orchistrator;
 pub mod actions;

@@ -1,4 +1,4 @@
-use shared_models::{day::Day, full_state::FullState, time_entry::TimeEntryVM};
+use shared_lib::models::{day::Day, full_state::FullState, time_entry::TimeEntryVM};
 
 use crate::monitor_actions::{MonitorAction, MonitorActionResult};
 

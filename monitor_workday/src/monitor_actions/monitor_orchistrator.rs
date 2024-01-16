@@ -1,7 +1,7 @@
 use crate::utils::error::Result;
 use async_recursion::async_recursion;
 use notify_rust::Notification;
-use shared_models::full_state::FullState;
+use shared_lib::models::full_state::FullState;
 
 use super::{MonitorAction, MonitorActionResult};
 

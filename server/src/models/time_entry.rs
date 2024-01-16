@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use shared_models::{charge_code::ChargeCodeVM, day::Day, time_entry::TimeEntryVM};
+use shared_lib::models::{charge_code::ChargeCodeVM, day::Day, time_entry::TimeEntryVM};
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TimeEntryRaw {

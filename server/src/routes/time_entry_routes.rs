@@ -7,7 +7,7 @@ use crate::utils::error::Result;
 use crate::utils::time::get_elapsed_time;
 use axum::{extract::Path, Extension, Json};
 use serde::{Deserialize, Serialize};
-use shared_models::{full_state::FullState, time_entry::TimeEntryVM};
+use shared_lib::models::{full_state::FullState, time_entry::TimeEntryVM};
 use sqlx::PgPool;
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {

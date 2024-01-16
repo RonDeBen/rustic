@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::{charge_code::ChargeCode, day::Day, time_entry::TimeEntryVM};
+use super::{charge_code::ChargeCode, day::Day, time_entry::TimeEntryVM};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FullState {

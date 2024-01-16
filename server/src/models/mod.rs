@@ -1,7 +1,6 @@
-// use shared_models::full_state::DayTimeEntries as SharedDayTimeEntries;
 use self::time_entry::TimeEntryRaw;
-use shared_models::time_entry::TimeEntryVM;
-use shared_models::day::Day;
+
+use shared_lib::models::{day::Day, time_entry::TimeEntryVM};
 
 pub mod time_entry;
 

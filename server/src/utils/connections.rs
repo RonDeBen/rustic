@@ -1,5 +1,4 @@
-use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
-
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
 pub async fn get_connection() -> Pool<Postgres> {
     let database_url = std::env::var("DATABASE_URL")
