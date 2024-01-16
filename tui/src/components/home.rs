@@ -128,15 +128,16 @@ impl Home<'_> {
         let time_entry_container_height = (remaining_space_height as f32 * 0.75) as u16;
         let notes_height = remaining_space_height - time_entry_container_height;
 
-        let layout = Layout::new()
-            .direction(Direction::Vertical)
-            .constraints([
+        let layout = Layout::new(
+            Direction::Vertical,
+            [
                 Constraint::Length(top_bar_height), // Fixed height for top bar
                 Constraint::Length(time_entry_container_height), // 75% of remaining space for time_entry_container
                 Constraint::Length(notes_height),                // Remaining space for notes
                 Constraint::Length(bottom_bar_height),           // Fixed height for bottom bar
-            ])
-            .split(area);
+            ],
+        )
+        .split(area);
 
         self.top_bar.draw(f, layout[0])?;
         self.time_entry_container.draw(f, layout[1])?;
@@ -166,9 +167,9 @@ impl Home<'_> {
 
     fn draw_standup_mode(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let top_bar_height = 3;
-        let layout = Layout::new()
-            .direction(Direction::Vertical)
-            .constraints([
+        let layout = Layout::new(
+            Direction::Vertical,
+            [
                 Constraint::Length(top_bar_height),
                 Constraint::Min(0), // Remaining space for standup mode content
             ])

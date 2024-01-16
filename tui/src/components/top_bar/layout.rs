@@ -29,9 +29,8 @@ impl TopBar {
 
 impl Component for TopBar {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let layout = Layout::new()
-            .direction(Direction::Horizontal)
-            .constraints(vec![Constraint::Percentage(75), Constraint::Percentage(25)])
+        let layout = Layout::new(Direction::Horizontal,
+            vec![Constraint::Percentage(75), Constraint::Percentage(25)])
             .split(area);
 
         self.weekday_selector.draw(f, layout[0])?;

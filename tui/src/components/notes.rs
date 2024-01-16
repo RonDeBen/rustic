@@ -3,7 +3,9 @@ use crate::api_client::ApiRequest::UpdateEntryNote;
 use crate::{action::Action, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{prelude::*, widgets::*};
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Style};
+use ratatui::widgets::{block::Block, Borders};
 use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::TextArea;
 
