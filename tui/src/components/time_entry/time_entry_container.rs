@@ -1,13 +1,14 @@
 use super::{entry::TimeEntry, time_utils::format_millis};
 use crate::{
     action::{Action, EditTimeAction, TTAct, UIAct},
-    api_client::{models::day::Day, ApiRequest::*},
+    api_client::ApiRequest::*,
     components::Component,
     tui::Frame,
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
+use shared_models::day::Day;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct TimeEntryContainer {

@@ -12,16 +12,14 @@ use crate::{
         Action, ApiAct, TTAct,
         UIAct::{self, *},
     },
-    api_client::{
-        models::{day::Day, FullState},
-        ApiResponse,
-    },
+    api_client::{ApiResponse, models::FullStateExt},
     config::Config,
     mode::Mode,
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
+use shared_models::{day::Day, full_state::FullState};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Home<'a> {
@@ -172,8 +170,9 @@ impl Home<'_> {
             [
                 Constraint::Length(top_bar_height),
                 Constraint::Min(0), // Remaining space for standup mode content
-            ])
-            .split(area);
+            ],
+        )
+        .split(area);
 
         self.top_bar.draw(f, layout[0])?;
         self.standup_container.draw(f, layout[1])?;

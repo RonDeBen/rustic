@@ -1,5 +1,5 @@
 use super::time_utils::format_millis;
-use crate::api_client::models::time_entry::TimeEntryVM as ApiTimeEntry;
+use shared_models::time_entry::TimeEntryVM as ApiTimeEntry;
 use crate::{
     action::{Action, UIAct},
     components::Component,

@@ -1,11 +1,12 @@
 use super::{mode_selector::ModeSelector, weekday_selector::WeekdaySelector};
-use crate::{action::Action, api_client::models::day::Day, components::Component};
+use crate::{action::Action, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };
+use shared_models::day::Day;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone, Default)]
@@ -29,9 +30,11 @@ impl TopBar {
 
 impl Component for TopBar {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let layout = Layout::new(Direction::Horizontal,
-            vec![Constraint::Percentage(75), Constraint::Percentage(25)])
-            .split(area);
+        let layout = Layout::new(
+            Direction::Horizontal,
+            vec![Constraint::Percentage(75), Constraint::Percentage(25)],
+        )
+        .split(area);
 
         self.weekday_selector.draw(f, layout[0])?;
 

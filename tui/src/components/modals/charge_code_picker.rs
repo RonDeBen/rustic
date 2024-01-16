@@ -1,6 +1,6 @@
 use crate::components::component_utils::draw_tooltip_bar;
+use crate::components::Component;
 use crate::{action::Action, api_client::ApiRequest::UpdateChargeCode};
-use crate::{api_client::models::charge_code::ChargeCode, components::Component};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use fuzzy_matcher::skim::SkimMatcherV2;
@@ -12,6 +12,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
+use shared_models::charge_code::ChargeCode;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChargeCodePickerModal {

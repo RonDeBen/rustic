@@ -1,18 +1,18 @@
 use crate::{
     action::{Action, TTAct::ChangeDay},
-    api_client::models::day::Day,
     components::Component,
     tui::Frame,
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
+use shared_models::day::Day;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone, Default)]
 pub struct WeekdaySelector {
-    selected_day: Day,
     command_tx: Option<UnboundedSender<Action>>,
+    selected_day: Day,
 }
 
 impl WeekdaySelector {

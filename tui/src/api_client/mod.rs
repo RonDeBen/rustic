@@ -1,9 +1,12 @@
 pub mod models;
 
-use self::models::{time_entry::TimeEntryVM, DayTimeEntries, FullState};
 use crate::action::{Action, ApiAct, UIAct};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use shared_models::{
+    full_state::{DayTimeEntries, FullState},
+    time_entry::TimeEntryVM,
+};
 use strum::Display;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -264,7 +267,9 @@ impl ApiClient {
 
 #[cfg(test)]
 mod tests {
-    use crate::api_client::{models::day::Day, ApiClient};
+    use shared_models::day::Day;
+
+    use crate::api_client::ApiClient;
 
     #[tokio::test]
     async fn can_create_time_entry() {

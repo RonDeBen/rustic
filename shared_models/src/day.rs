@@ -1,14 +1,18 @@
 use chrono::{Datelike, Utc, Weekday};
-use serde_repr::Serialize_repr;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
-//Serialize_repr makes this serialize as the varient number, instead of a string for the day
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq, Serialize_repr, sqlx::Type)]
+// Serialize_repr makes this serialize as the varient number, instead of a string for the day
+// ditto for Deserialize_repr, but in reverse
+#[derive(
+    Default, Debug, Clone, Copy, Eq, Hash, PartialEq, Serialize_repr, sqlx::Type, Deserialize_repr,
+)]
 #[repr(i16)]
 pub enum Day {
     Monday = 0,
     Tuesday = 1,
     Wednesday = 2,
     Thursday = 3,
+    #[default]
     Friday = 4,
 }
 

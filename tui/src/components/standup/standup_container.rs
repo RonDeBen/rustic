@@ -1,14 +1,11 @@
-use crate::{
-    api_client::models::{charge_code::ChargeCode, time_entry::TimeEntryVM},
-    components::Component,
-    tui::Frame,
-};
+use crate::{components::Component, tui::Frame};
 use color_eyre::eyre::Result;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::Style,
     widgets::{Block, Borders, Paragraph, Wrap},
 };
+use shared_models::{charge_code::ChargeCode, time_entry::TimeEntryVM};
 use std::collections::HashMap;
 
 #[derive(Default)]

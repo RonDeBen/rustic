@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use shared_models::day::Day;
 use strum::Display;
 
 use crate::{
-    api_client::{models::day::Day, ApiRequest, ApiResponse},
+    api_client::{ApiRequest, ApiResponse},
     mode::Mode,
 };
 
