@@ -1,12 +1,13 @@
 use crate::db::charge_code_repo::fetch_charge_codes;
 use crate::db::time_entry_repo::update_time_entry_note;
-use crate::models::{DayTimeEntries, FullState};
+use crate::db::time_entry_repo::*;
+use crate::models::DayTimeEntries;
 use crate::services::time_entry_service::switch_to_timer;
 use crate::utils::error::Result;
 use crate::utils::time::get_elapsed_time;
-use crate::{db::time_entry_repo::*, models::time_entry::TimeEntryVM};
 use axum::{extract::Path, Extension, Json};
 use serde::{Deserialize, Serialize};
+use shared_models::{full_state::FullState, time_entry::TimeEntryVM};
 use sqlx::PgPool;
 
 pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {

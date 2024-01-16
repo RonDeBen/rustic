@@ -1,5 +1,6 @@
-use crate::models::time_entry::{Day, TimeEntryRaw, TimeEntryVM};
+use crate::models::time_entry::TimeEntryRaw;
 use chrono::NaiveDateTime;
+use shared_models::{day::Day, time_entry::TimeEntryVM};
 use sqlx::{Executor, Postgres};
 use std::collections::HashMap;
 

@@ -1,17 +1,9 @@
-use self::{
-    charge_code::ChargeCode,
-    time_entry::{Day, TimeEntryVM, TimeEntryRaw},
-};
-use std::collections::HashMap;
+// use shared_models::full_state::DayTimeEntries as SharedDayTimeEntries;
+use self::time_entry::TimeEntryRaw;
+use shared_models::time_entry::TimeEntryVM;
+use shared_models::day::Day;
 
-pub mod charge_code;
 pub mod time_entry;
-
-#[derive(serde::Serialize)]
-pub struct FullState {
-    pub time_entries: HashMap<Day, Vec<TimeEntryVM>>,
-    pub charge_codes: Vec<ChargeCode>,
-}
 
 #[derive(serde::Serialize, Debug)]
 pub struct DayTimeEntries {

@@ -1,4 +1,4 @@
-use crate::models::charge_code::ChargeCode;
+use shared_models::charge_code::ChargeCode;
 use sqlx::PgPool;
 
 pub async fn fetch_charge_codes(pool: &PgPool) -> Result<Vec<ChargeCode>, sqlx::Error> {

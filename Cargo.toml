@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "shared_models",
+    "server",
+    "tui",
+    "monitor_workday"
+]

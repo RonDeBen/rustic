@@ -7,6 +7,7 @@ use crate::{
     utils::time::get_elapsed_time,
 };
 use chrono::{NaiveDateTime, Utc};
+use shared_models::day::Day;
 use sqlx::PgPool;
 
 pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, sqlx::Error> {
@@ -25,7 +26,7 @@ pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, s
 
     let day = match entries.first() {
         Some(entry) => entry.day,
-        None => crate::models::time_entry::Day::Friday,
+        None => Day::Friday,
     };
 
     Ok(DayTimeEntries::new(day, entries.as_slice()))

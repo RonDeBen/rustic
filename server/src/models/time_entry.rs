@@ -1,6 +1,5 @@
-use chrono::{Datelike, NaiveDateTime, Utc, Weekday};
-use serde::Serialize;
-use serde_repr::Serialize_repr;
+use chrono::NaiveDateTime;
+use shared_models::{charge_code::ChargeCodeVM, day::Day, time_entry::TimeEntryVM};
 
 #[derive(sqlx::FromRow, Debug)]
 pub struct TimeEntryRaw {
@@ -8,27 +7,10 @@ pub struct TimeEntryRaw {
     pub start_time: Option<NaiveDateTime>,
     pub total_time: i64, // milliseconds
     pub note: String,
-    pub day: Day,
     // Fields for charge code
     pub charge_code_id: Option<i32>,
-    pub alias: Option<String>,
-}
-
-#[derive(Serialize, Debug)]
-pub struct ChargeCodeVM {
-    pub id: i32,
-    pub alias: String,
-}
-
-#[derive(Serialize, Debug)]
-pub struct TimeEntryVM {
-    pub id: i32,
-    pub start_time: Option<NaiveDateTime>,
-    pub total_time: i64, // milliseconds
-    pub note: String,
     pub day: Day,
-    pub is_active: bool,
-    pub charge_code: Option<ChargeCodeVM>,
+    pub alias: Option<String>,
 }
 
 impl From<TimeEntryRaw> for TimeEntryVM {
@@ -68,46 +50,3 @@ impl From<&TimeEntryRaw> for TimeEntryVM {
     }
 }
 
-//Serialize_repr makes this serialize as the varient number, instead of a string for the day
-#[derive(Debug, Clone, Copy, sqlx::Type, Eq, Hash, PartialEq, Serialize_repr)]
-#[repr(i16)]
-pub enum Day {
-    Monday = 0,
-    Tuesday = 1,
-    Wednesday = 2,
-    Thursday = 3,
-    Friday = 4,
-}
-
-impl Day {
-    pub fn get_current_day() -> Self {
-        let today = Utc::now().date_naive().weekday();
-        match today {
-            Weekday::Mon => Day::Monday,
-            Weekday::Tue => Day::Tuesday,
-            Weekday::Wed => Day::Wednesday,
-            Weekday::Thu => Day::Thursday,
-            Weekday::Fri => Day::Friday,
-            _ => Day::Friday,
-        }
-    }
-}
-
-impl From<Day> for i16 {
-    fn from(value: Day) -> i16 {
-        value as i16
-    }
-}
-
-impl From<i16> for Day {
-    fn from(value: i16) -> Self {
-        match value {
-            0 => Day::Monday,
-            1 => Day::Tuesday,
-            2 => Day::Wednesday,
-            3 => Day::Thursday,
-            4 => Day::Friday,
-            _ => Day::Friday,
-        }
-    }
-}

@@ -1,6 +1,7 @@
+use crate::db::charge_code_repo::fetch_charge_codes;
 use crate::utils::error::Result;
-use crate::{db::charge_code_repo::fetch_charge_codes, models::charge_code::ChargeCode};
-use axum::{Json, Extension};
+use axum::{Extension, Json};
+use shared_models::charge_code::ChargeCode;
 use sqlx::PgPool;
 
 pub async fn get_charge_codes(Extension(pool): Extension<PgPool>) -> Result<Json<Vec<ChargeCode>>> {
