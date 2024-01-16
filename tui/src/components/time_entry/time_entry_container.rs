@@ -8,7 +8,7 @@ use crate::{
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{prelude::*, widgets::*};
-use shared_models::day::Day;
+use shared_lib::models::day::Day;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct TimeEntryContainer {

@@ -5,7 +5,7 @@ use ratatui::{
     style::Style,
     widgets::{Block, Borders, Paragraph, Wrap},
 };
-use shared_models::{charge_code::ChargeCode, time_entry::TimeEntryVM};
+use shared_lib::models::{charge_code::ChargeCode, time_entry::TimeEntryVM};
 use std::collections::HashMap;
 
 #[derive(Default)]

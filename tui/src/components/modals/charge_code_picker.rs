@@ -12,7 +12,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
     Frame,
 };
-use shared_models::charge_code::ChargeCode;
+use shared_lib::models::charge_code::ChargeCode;
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct ChargeCodePickerModal {

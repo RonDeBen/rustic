@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use shared_models::day::Day;
+use shared_lib::models::day::Day;
 use strum::Display;
 
 use crate::{

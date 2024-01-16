@@ -3,7 +3,7 @@ pub mod models;
 use crate::action::{Action, ApiAct, UIAct};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use shared_models::{
+use shared_lib::models::{
     full_state::{DayTimeEntries, FullState},
     time_entry::TimeEntryVM,
 };

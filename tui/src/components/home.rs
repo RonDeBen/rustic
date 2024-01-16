@@ -12,14 +12,14 @@ use crate::{
         Action, ApiAct, TTAct,
         UIAct::{self, *},
     },
-    api_client::{ApiResponse, models::FullStateExt},
+    api_client::{models::FullStateExt, ApiResponse},
     config::Config,
     mode::Mode,
 };
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
-use shared_models::{day::Day, full_state::FullState};
+use shared_lib::models::{day::Day, full_state::FullState};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Home<'a> {

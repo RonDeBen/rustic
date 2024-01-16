@@ -1,4 +1,4 @@
-use shared_models::{day::Day, full_state::FullState};
+use shared_lib::models::{day::Day, full_state::FullState};
 
 use crate::components::time_entry::entry::TimeEntry;
 
