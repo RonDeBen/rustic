@@ -1,4 +1,4 @@
-use crate::utils::error::{Result, MonitorError};
+use crate::utils::error::{MonitorError, Result};
 use async_recursion::async_recursion;
 use notify_rust::Notification;
 use shared_lib::{api_client::ApiClient, models::full_state::FullState};
@@ -23,6 +23,7 @@ impl MonitorOrchestrator {
     }
 
     pub async fn monitor_actions(&self) -> Result<()> {
+        log::info!("running all monitor actions");
         self.cleanup_old_timers().await?;
 
         let full_state = self.get_full_state().await?;
@@ -41,23 +42,25 @@ impl MonitorOrchestrator {
     }
 
     async fn get_full_state(&self) -> Result<FullState> {
-        match self.client.get_full_state().await{
+        match self.client.get_full_state().await {
             Ok(state) => Ok(state),
             Err(e) => Err(MonitorError::ReqwestError(e)),
         }
     }
 
     async fn cleanup_old_timers(&self) -> Result<()> {
-        match self.client.cleanup_entries().await{
+        match self.client.cleanup_entries().await {
             Ok(state) => Ok(state),
             Err(e) => Err(MonitorError::ReqwestError(e)),
         }
     }
-
 }
 
 #[async_recursion]
-async fn handle_monitor_action_result(client: &ApiClient, result: MonitorActionResult) -> Result<()> {
+async fn handle_monitor_action_result(
+    client: &ApiClient,
+    result: MonitorActionResult,
+) -> Result<()> {
     match result {
         MonitorActionResult::SendMessage(message) => {
             send_notification(&message)?;
@@ -79,7 +82,6 @@ async fn handle_monitor_action_result(client: &ApiClient, result: MonitorActionR
         }
     }
 }
-
 
 fn send_notification(message: &str) -> Result<()> {
     Notification::new()
