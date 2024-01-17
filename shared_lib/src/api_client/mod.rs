@@ -1,5 +1,5 @@
 use reqwest::Client;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::models::{
     full_state::{DayTimeEntries, FullState},
@@ -114,5 +114,14 @@ impl ApiClient {
             .await?
             .json::<DayTimeEntries>()
             .await
+    }
+
+    pub async fn cleanup_entries(&self) -> Result<(), reqwest::Error> {
+        self.client
+            .delete(&format!("{}/admin/cleanup", self.base_url))
+            .send()
+            .await?
+            .error_for_status()
+            .map(|_| ())
     }
 }

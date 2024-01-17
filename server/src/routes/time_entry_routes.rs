@@ -5,7 +5,7 @@ use crate::models::DayTimeEntries;
 use crate::services::time_entry_service::switch_to_timer;
 use crate::utils::error::Result;
 use crate::utils::time::get_elapsed_time;
-use axum::{extract::Path, Extension, Json};
+use axum::{extract::Path, http::StatusCode, Extension, Json};
 use serde::{Deserialize, Serialize};
 use shared_lib::models::{full_state::FullState, time_entry::TimeEntryVM};
 use sqlx::PgPool;
@@ -112,4 +112,9 @@ pub async fn delete_time_entry_request(
     let entries = fetch_time_entries_for_day(&pool, entry.day.into()).await?;
     let day_time_entries = DayTimeEntries::new(entry.day, entries.as_slice());
     Ok(Json(day_time_entries))
+}
+
+pub async fn delete_old_entries_request(Extension(pool): Extension<PgPool>) -> Result<StatusCode> {
+    delete_old_time_entries(&pool).await?;
+    Ok(StatusCode::OK)
 }

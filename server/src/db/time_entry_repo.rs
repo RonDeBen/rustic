@@ -203,6 +203,20 @@ where
     Ok(())
 }
 
+pub async fn delete_old_time_entries<'e, E>(exec: E) -> Result<(), sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query(
+        "DELETE FROM time_tracking.time_entries
+         WHERE created_at < NOW() - INTERVAL '7 days'",
+    )
+    .execute(exec)
+    .await?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::time_entry_repo::*;
