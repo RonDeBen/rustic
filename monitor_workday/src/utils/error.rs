@@ -9,4 +9,6 @@ pub enum MonitorError {
     InternalError,
     #[error("An error occured while sending the notification: {0}")]
     NotificationError(#[from] notify_rust::error::Error),
+    #[error("An error occured while making a request to the server: {0}")]
+    ReqwestError(#[from] reqwest::Error),
 }
