@@ -8,10 +8,10 @@ pub mod mode;
 pub mod shared;
 pub mod tui;
 
-use api_client::ApiClient;
 use clap::Parser;
 use cli::Cli;
 use color_eyre::eyre::Result;
+use shared_lib::api_client::ApiClient;
 
 use crate::{
     app::App,

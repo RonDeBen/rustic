@@ -1,6 +1,7 @@
 use color_eyre::eyre::Result;
 use crossterm::event::KeyEvent;
 use ratatui::prelude::Rect;
+use shared_lib::api_client::ApiClient;
 use tokio::sync::mpsc::{self, UnboundedSender};
 
 use crate::{
@@ -8,11 +9,10 @@ use crate::{
         Action,
         UIAct::{self, *},
     },
-    api_client::ApiClient,
     components::{home::Home, Component},
     config::Config,
     mode::Mode,
-    tui,
+    tui, api_client::ApiClientExt,
 };
 
 pub struct App {
