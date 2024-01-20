@@ -18,12 +18,13 @@ RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path r
 
 # Build application
 COPY . .
-RUN cargo build --release --target x86_64-unknown-linux-musl --bin rustic-server
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin monitor_workday
 
 # Build runtime image
 FROM scratch AS final
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/rustic-server /bin/rustic-server
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/monitor_workday /bin/monitor_workday
 
 # Set the entrypoint to the application binary
-ENTRYPOINT ["/bin/rustic-server"]
+ENTRYPOINT ["/bin/monitor_workday"]
+
 

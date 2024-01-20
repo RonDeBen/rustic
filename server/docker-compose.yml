@@ -2,9 +2,13 @@ version: "3.8"
 
 services:
   rustic-server:
-    build: .
+    build:
+      context: ../  # Set the context to the parent directory
+      dockerfile: server/Dockerfile
+      target: final
     volumes:
       - .:/app
+      - ../shared_lib:/app/shared_lib
       - cargo-cache:/usr/local/cargo/registry
     command: sh -c "cargo run --bin rustic-server"
     ports:
