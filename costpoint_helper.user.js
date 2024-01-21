@@ -47,26 +47,48 @@ function example() {
 }
 
 function setNoteForCell(cellId, note) {
+  // Find the cell by ID
   const cell = document.getElementById(cellId);
   if (cell) {
-    const noteIcon = cell.querySelector(".tCommentBtn");
-    if (noteIcon) {
-      // Make the note icon visible
-      noteIcon.style.display = "inline";
+    // Find the span element with the 'tCommentBtn' class within the cell's parent div
+    const noteSpan = cell.parentElement.querySelector(".tCommentBtn");
+    if (noteSpan && noteIcon) {
+      // Click the note span to make the note icon visible
+      noteSpan.style.display = "inline"; // Make sure the span is visible before clicking
+      noteSpan.click(); // Click the note span to open the note editor
 
-      // Trigger a click on the note icon
-      noteIcon.click();
-
-      // Wait a bit to ensure the expando is visible, then fill in the note
+      // Wait for the note editor to become visible
       setTimeout(() => {
-        const expandoTextArea = document.getElementById("expandoEdit");
-        if (expandoTextArea) {
-          expandoTextArea.value = note;
-          const okButton = document.getElementById("expandoOK");
-          okButton.click();
+        // Try clicking the note icon now that it should be visible
+        const noteIcon = cell.nextElementSibling;
+        if (noteIcon) {
+          noteIcon.click();
+          // Wait for the note editor to open after clicking the icon
+          setTimeout(() => {
+            const noteEditor = document.getElementById("expandoEdit");
+            if (noteEditor) {
+              // Set the note text
+              noteEditor.value = note;
+              // Find the "Ok" button and click it to save the note
+              const okButton = document.getElementById("expandoOK");
+              if (okButton) {
+                okButton.click();
+              } else {
+                console.error("Ok button not found");
+              }
+            } else {
+              console.error("Note editor not found");
+            }
+          }, 500); // Adjust this delay as necessary
+        } else {
+          console.error("Note icon not found");
         }
-      }, 100); // Adjust the timeout as needed
+      }, 500); // Adjust this delay as necessary
+    } else {
+      console.error("Note span not found");
     }
+  } else {
+    console.error("Input cell not found");
   }
 }
 
