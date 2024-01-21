@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
     let api_base_url =
-        std::env::var("API_BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+        std::env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
     let api_client = ApiClient::new(api_base_url);
 
     let mut orchestrator = MonitorOrchestrator::new(api_client);

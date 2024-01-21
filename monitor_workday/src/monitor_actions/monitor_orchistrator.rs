@@ -63,14 +63,17 @@ async fn handle_monitor_action_result(
 ) -> Result<()> {
     match result {
         MonitorActionResult::SendMessage(message) => {
+            log::info!("sending message!");
             send_notification(&message)?;
             Ok(())
         }
         MonitorActionResult::StopTimer(entry_id) => {
+            log::info!("stopping timer: {}", entry_id);
             client.pause_entry(entry_id).await?;
             Ok(())
         }
         MonitorActionResult::DeleteEntry(entry_id) => {
+            log::info!("deleting entry: {}", entry_id);
             client.delete_entry(entry_id).await?;
             Ok(())
         }

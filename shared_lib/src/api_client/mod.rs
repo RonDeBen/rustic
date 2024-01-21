@@ -118,7 +118,7 @@ impl ApiClient {
 
     pub async fn cleanup_entries(&self) -> Result<(), reqwest::Error> {
         self.client
-            .delete(&format!("{}/admin/cleanup", self.base_url))
+            .post(&format!("{}/admin/cleanup", self.base_url))
             .send()
             .await?
             .error_for_status()

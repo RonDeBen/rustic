@@ -6,7 +6,7 @@ services:
     container_name: rustic_db
     restart: unless-stopped
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:5434:5432"
     environment:
       POSTGRES_USER: rustic_user
       POSTGRES_PASSWORD: password
@@ -23,7 +23,7 @@ services:
       - cargo-cache:/usr/local/cargo/registry
     command: sh -c "cargo run --bin rustic-server"
     ports:
-      - "127.0.0.1:8000:3000"
+      - "127.0.0.1:8001:3000"
     depends_on:
       - db
     environment:
@@ -41,7 +41,8 @@ services:
     depends_on:
       - server
     environment:
-      SERVER_URL: "http://127.0.0.1:3000"
+      RUST_LOG: "info,debug,sqlx=warn"
+      SERVER_URL: "http://server:3000"
 
 volumes:
   cargo-cache:
