@@ -17,22 +17,29 @@ function initializeMappings() {
 
 // A helper function to extract dates and map them to column indices
 function mapDatesToColumns() {
-  const dateHeaders = document.querySelectorAll("div.hdTxt");
-  const dateColumnMap = {};
-  let columnIndex = 1; // Start indexing from 1 for the first date
+  const dateDivs = Array.from(document.querySelectorAll("div.hdDiv"));
+  let dateMap = [];
 
-  dateHeaders.forEach((header) => {
-    // Assuming the second child div contains the date
-    const dateDiv = header.children[1];
-    // the date div is unique based on this kind of date pattern
-    // magically, this already pulls everything in chronological order
-    if (dateDiv && dateDiv.textContent.match(/\d{2}\/\d{2}\/\d{2}/)) {
-      const date = dateDiv.textContent.trim();
-      dateColumnMap[date] = columnIndex.toString();
-      columnIndex++;
+  dateDivs.forEach((div) => {
+    const match = div.id.match(/hdDiv(\d+)_1/);
+    if (match && div.textContent.match(/\d{2}\/\d{2}\/\d{2}/)) {
+      dateMap.push({
+        idNum: parseInt(match[1], 10),
+        date: div.textContent.trim(),
+      });
     }
   });
 
+  // Sort the array based on the idNum extracted
+  dateMap.sort((a, b) => a.idNum - b.idNum);
+
+  // Create a new object to hold the date to index mapping
+  const dateColumnMap = {};
+  dateMap.forEach((item, index) => {
+    dateColumnMap[item.date] = index + 1;
+  });
+
+  console.log("dateColumnMap: ", dateColumnMap);
   return dateColumnMap;
 }
 
@@ -82,7 +89,7 @@ async function updateCostpointWithEntries(date) {
     let updatesList = timeEntries.map((entry) => ({
       cellId: findInputCellId(entry.charge_code, entry.date),
       hours: entry.hours,
-      note: "automatically generated note",
+      note: entry.notes,
     }));
     await processUpdates(updatesList);
   }
