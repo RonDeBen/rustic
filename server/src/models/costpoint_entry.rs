@@ -3,6 +3,7 @@ pub struct CostpointEntryRaw {
     pub charge_code: String,
     pub total_time_milliseconds: i64,
     pub entry_date: String,
+    pub notes: String,
 }
 
 #[derive(serde::Serialize)]
@@ -10,14 +11,16 @@ pub struct CostpointEntryVM {
     pub charge_code: String,
     pub hours: String,
     pub date: String,
+    pub notes: String,
 }
 
-impl From<CostpointEntryRaw> for CostpointEntryVM{
+impl From<CostpointEntryRaw> for CostpointEntryVM {
     fn from(value: CostpointEntryRaw) -> Self {
         Self {
             charge_code: value.charge_code,
             hours: milliseconds_to_quarter_hours(value.total_time_milliseconds),
             date: value.entry_date,
+            notes: value.notes,
         }
     }
 }
@@ -27,4 +30,3 @@ fn milliseconds_to_quarter_hours(milliseconds: i64) -> String {
     let quarter_hours = (hours * 4.0).round() / 4.0; // Round to nearest quarter hour
     format!("{:.2}", quarter_hours) // Format with two decimal places
 }
-

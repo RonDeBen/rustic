@@ -1,4 +1,4 @@
-use crate::models::{time_entry::TimeEntryRaw, costpoint_entry::CostpointEntryRaw};
+use crate::models::{costpoint_entry::CostpointEntryRaw, time_entry::TimeEntryRaw};
 use chrono::NaiveDateTime;
 use shared_lib::models::{day::Day, time_entry::TimeEntryVM};
 use sqlx::{Executor, Postgres};
@@ -225,12 +225,22 @@ where
 "
 SELECT
     cc.code AS charge_code,
-    CAST(COALESCE(te.total_time + EXTRACT(EPOCH FROM (NOW() - te.start_time)) * 1000, te.total_time) AS BIGINT) AS total_time_milliseconds,
-    TO_CHAR(te.created_at, 'MM/DD/YY') AS entry_date
+    CAST(
+        SUM(
+            COALESCE(
+                te.total_time + CASE WHEN te.start_time IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - te.start_time)) * 1000 ELSE 0 END,
+                te.total_time
+            )
+        ) AS BIGINT
+    ) AS total_time_milliseconds,
+    TO_CHAR(te.created_at, 'MM/DD/YY') AS entry_date,
+    STRING_AGG(te.note, '\n') AS notes
 FROM
     time_tracking.time_entries te
 LEFT JOIN
     time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+GROUP BY
+    cc.code, TO_CHAR(te.created_at, 'MM/DD/YY');
 ",
     )
     .fetch_all(exec)
