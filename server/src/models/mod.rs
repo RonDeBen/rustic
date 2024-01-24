@@ -2,6 +2,7 @@ use self::time_entry::TimeEntryRaw;
 
 use shared_lib::models::{day::Day, time_entry::TimeEntryVM};
 
+pub mod costpoint_entry;
 pub mod time_entry;
 
 #[derive(serde::Serialize, Debug)]

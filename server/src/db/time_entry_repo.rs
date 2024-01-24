@@ -1,4 +1,4 @@
-use crate::models::time_entry::TimeEntryRaw;
+use crate::models::{time_entry::TimeEntryRaw, costpoint_entry::CostpointEntryRaw};
 use chrono::NaiveDateTime;
 use shared_lib::models::{day::Day, time_entry::TimeEntryVM};
 use sqlx::{Executor, Postgres};
@@ -215,6 +215,28 @@ where
     .await?;
 
     Ok(())
+}
+
+pub async fn fetch_costpoint_entries<'e, E>(exec: E) -> Result<Vec<CostpointEntryRaw>, sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    let entries = sqlx::query_as::<_, CostpointEntryRaw>(
+"
+SELECT
+    cc.code AS charge_code,
+    CAST(COALESCE(te.total_time + EXTRACT(EPOCH FROM (NOW() - te.start_time)) * 1000, te.total_time) AS BIGINT) AS total_time_milliseconds,
+    TO_CHAR(te.created_at, 'MM/DD/YY') AS entry_date
+FROM
+    time_tracking.time_entries te
+LEFT JOIN
+    time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+",
+    )
+    .fetch_all(exec)
+    .await?;
+
+    Ok(entries)
 }
 
 #[cfg(test)]

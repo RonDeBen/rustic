@@ -18,6 +18,7 @@ services:
     environment:
       RUST_LOG: "debug,sqlx=warn"
       DATABASE_URL: "postgres://rustic_user:password@db:5432/rustic_db"
+      SERVER_ADDR: "0.0.0.0:3000"
 
   db:
     build: ../db/db_init/

@@ -7,10 +7,12 @@ use rustic_server::{
     utils,
 };
 use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
 
 #[tokio::main]
 async fn main() {
     env_logger::init();
+
     let pool = utils::connections::get_connection().await;
 
     let app = Router::new()
@@ -31,11 +33,16 @@ async fn main() {
         .route("/time_entries/:id/play", put(play_time_entry_request))
         .route("/time_entries/:id/pause", put(pause_time_entry_request))
         .route("/time_entries/:id", delete(delete_time_entry_request))
+        .route("/time_entries/costpoint", get(get_costpoint_entries))
         .route("/charge_codes", get(get_charge_codes))
         .route("/admin/cleanup", post(delete_old_entries_request))
-        .layer(axum::extract::Extension(pool));
+        .layer(axum::extract::Extension(pool))
+        .layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let default_addr = "127.0.0.1:3000".to_string();
+    let addr = std::env::var("SERVER_ADDR").unwrap_or(default_addr);
+    let addr: SocketAddr = addr.parse().expect("Invalid address");
+
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await

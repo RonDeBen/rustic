@@ -1,6 +1,7 @@
 use crate::db::charge_code_repo::fetch_charge_codes;
 use crate::db::time_entry_repo::update_time_entry_note;
 use crate::db::time_entry_repo::*;
+use crate::models::costpoint_entry::CostpointEntryVM;
 use crate::models::DayTimeEntries;
 use crate::services::time_entry_service::switch_to_timer;
 use crate::utils::error::Result;
@@ -117,4 +118,13 @@ pub async fn delete_time_entry_request(
 pub async fn delete_old_entries_request(Extension(pool): Extension<PgPool>) -> Result<StatusCode> {
     delete_old_time_entries(&pool).await?;
     Ok(StatusCode::OK)
+}
+
+pub async fn get_costpoint_entries(
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<Vec<CostpointEntryVM>>> {
+    let mut raw_entries = fetch_costpoint_entries(&pool).await?;
+    let entries: Vec<CostpointEntryVM> = raw_entries.drain(..).map(|entry| entry.into()).collect();
+
+    Ok(Json(entries))
 }
