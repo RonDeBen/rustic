@@ -1,10 +1,19 @@
 // ==UserScript==
 // @name     Rustic Costpoint Helper
 // @description Automates data entry in Costpoint
-// @include https://praeses-cp.costpointfoundations.com/cpweb/masterPage.htm*
+// @match https://praeses-cp.costpointfoundations.com/cpweb/masterPage.htm*
 // @version  1
-// @grant    none
+// @grant    GM.xmlHttpRequest
+// @connect *
 // ==/UserScript==
+
+let dateColumnMap = null;
+let chargeCodeRowMap = null;
+
+function initializeMappings() {
+  dateColumnMap = mapDatesToColumns();
+  chargeCodeRowMap = mapChargeCodesToRows();
+}
 
 // A helper function to extract dates and map them to column indices
 function mapDatesToColumns() {
@@ -15,34 +24,121 @@ function mapDatesToColumns() {
   dateHeaders.forEach((header) => {
     // Assuming the second child div contains the date
     const dateDiv = header.children[1];
+    // the date div is unique based on this kind of date pattern
+    // magically, this already pulls everything in chronological order
     if (dateDiv && dateDiv.textContent.match(/\d{2}\/\d{2}\/\d{2}/)) {
-      // Check if the text is a date
       const date = dateDiv.textContent.trim();
       dateColumnMap[date] = columnIndex.toString();
-      columnIndex++; // Increment the index for the next date
+      columnIndex++;
     }
   });
 
   return dateColumnMap;
 }
 
-function findInputCellId(chargeCodeRow, date) {
-  const dateColumnMap = mapDatesToColumns();
-  const dayIndex = dateColumnMap[date];
-  if (dayIndex !== undefined) {
-    const inputCellId = `DAY${dayIndex}_HRS-_${chargeCodeRow}_E`;
-    console.log("inputCellId", inputCellId);
-    return inputCellId;
+function mapChargeCodesToRows() {
+  // This regex matches the pattern "UDT02_ID-_" followed by any number and "_E"
+  const chargeCodeIdPattern = /UDT02_ID-_(\d+)_E/;
+  const inputs = document.querySelectorAll("input");
+  const chargeCodeRowMap = {};
+
+  inputs.forEach((input) => {
+    const match = chargeCodeIdPattern.exec(input.id);
+    if (match && match[1]) {
+      // Extract the row number from the ID
+      const rowNumber = parseInt(match[1], 10);
+      // Map the charge code to the row number
+      chargeCodeRowMap[input.value] = rowNumber;
+    }
+  });
+
+  return chargeCodeRowMap;
+}
+
+function fetchTimeEntries() {
+  return new Promise((resolve, reject) => {
+    GM.xmlHttpRequest({
+      method: "GET",
+      url: "http://127.0.0.1:8001/time_entries/costpoint",
+      onload: function (response) {
+        console.log(response);
+        if (response.status === 200) {
+          resolve(JSON.parse(response.responseText));
+        } else {
+          reject(new Error(`HTTP error! Status: ${response.status}`));
+        }
+      },
+      onerror: function (error) {
+        reject(new Error("Error fetching time entries: " + error));
+      },
+    });
+  });
+}
+
+async function updateCostpointWithEntries(date) {
+  const timeEntries = await fetchTimeEntries(date);
+  console.log("timeEntries: ", timeEntries);
+  if (timeEntries && timeEntries.length > 0) {
+    let updatesList = timeEntries.map((entry) => ({
+      cellId: findInputCellId(entry.charge_code, entry.date),
+      hours: entry.hours,
+      note: "automatically generated note",
+    }));
+    await processUpdates(updatesList);
   }
 }
 
-// Example usage: Find the input cell for charge code row 2 on date "01/16/24"
-function example() {
-  const inputCellId = findInputCellId(0, "01/16/24");
-  if (inputCellId) {
-    setNoteForCell(inputCellId, "ron wuz here lol");
+function findInputCellId(chargeCode, date) {
+  const chargeCodeRow = chargeCodeRowMap[chargeCode];
+  const dayIndex = dateColumnMap[date];
+  if (dayIndex !== undefined && chargeCodeRow !== undefined) {
+    const inputCellId = `DAY${dayIndex}_HRS-_${chargeCodeRow}_E`;
+    return inputCellId;
+  }
+  console.error(
+    `Cell ID not found for charge code: ${chargeCode} and date: ${date}`,
+  );
+  return null;
+}
+
+async function example() {
+  // initializing for each button press, because loading in timings are weird
+  initializeMappings();
+  await updateCostpointWithEntries();
+}
+
+async function processUpdates(updatesList) {
+  for (let i = 0; i < updatesList.length; i++) {
+    const firstUpdate = updatesList[i];
+    let secondIndex = (i + 1) % updatesList.length;
+    const secondUpdate = updatesList[secondIndex];
+
+    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
+    await delay(300);
+    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
+    setEntryForCell(secondUpdate.cellId, secondUpdate.hours, secondUpdate.note);
+
+    await delay(900);
+  }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function setEntryForCell(cellId, hours, note) {
+  setNoteForCell(cellId, note);
+  setHoursForCell(cellId, hours);
+}
+
+function setHoursForCell(cellId, hours) {
+  const cell = document.getElementById(cellId);
+  if (cell) {
+    cell.focus(); // Focus on the cell
+    cell.value = String(hours); // Set the hours as a string
+    cell.blur();
   } else {
-    console.log("Input cell not found");
+    console.error("Input cell not found: " + cellId);
   }
 }
 
@@ -52,8 +148,7 @@ function setNoteForCell(cellId, note) {
   if (cell) {
     // Find the span element with the 'tCommentBtn' class within the cell's parent div
     const noteSpan = cell.parentElement.querySelector(".tCommentBtn");
-    if (noteSpan && noteIcon) {
-      // Click the note span to make the note icon visible
+    if (noteSpan) {
       noteSpan.style.display = "inline"; // Make sure the span is visible before clicking
       noteSpan.click(); // Click the note span to open the note editor
 
@@ -79,11 +174,11 @@ function setNoteForCell(cellId, note) {
             } else {
               console.error("Note editor not found");
             }
-          }, 500); // Adjust this delay as necessary
+          }, 100);
         } else {
           console.error("Note icon not found");
         }
-      }, 500); // Adjust this delay as necessary
+      }, 100);
     } else {
       console.error("Note span not found");
     }
@@ -92,24 +187,8 @@ function setNoteForCell(cellId, note) {
   }
 }
 
-function findAndLogChargeCodes() {
-  // This regex matches the pattern "UDT02_ID-_" followed by any number and "_E"
-  const chargeCodeIdPattern = /UDT02_ID-_\d+_E/;
-
-  // Select all input elements
-  const inputs = document.querySelectorAll("input");
-
-  // Iterate over the inputs to find the ones that match the pattern
-  inputs.forEach((input) => {
-    if (chargeCodeIdPattern.test(input.id)) {
-      // Log the id and the value of the input element
-      console.log("ID:", input.id, "Value:", input.value);
-    }
-  });
-}
-
 let button = document.createElement("button");
-button.textContent = "Highlight Charge Codes";
+button.textContent = "Automatically Enter Time Entries!!";
 button.style.position = "fixed";
 button.style.top = "10px";
 button.style.right = "10px";
