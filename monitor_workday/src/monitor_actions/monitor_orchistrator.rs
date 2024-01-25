@@ -1,6 +1,5 @@
 use crate::utils::error::{MonitorError, Result};
 use async_recursion::async_recursion;
-use notify_rust::Notification;
 use shared_lib::{api_client::ApiClient, models::full_state::FullState};
 
 use super::{MonitorAction, MonitorActionResult};
@@ -62,11 +61,6 @@ async fn handle_monitor_action_result(
     result: MonitorActionResult,
 ) -> Result<()> {
     match result {
-        MonitorActionResult::SendMessage(message) => {
-            log::info!("sending message!");
-            send_notification(&message)?;
-            Ok(())
-        }
         MonitorActionResult::StopTimer(entry_id) => {
             log::info!("stopping timer: {}", entry_id);
             client.pause_entry(entry_id).await?;
@@ -84,12 +78,4 @@ async fn handle_monitor_action_result(
             Ok(())
         }
     }
-}
-
-fn send_notification(message: &str) -> Result<()> {
-    Notification::new()
-        .summary("Rustic Notification")
-        .body(message)
-        .show()?;
-    Ok(())
 }

@@ -1,5 +1,5 @@
 [package]
-name = "monitor_workday"
+name = "alerts"
 version = "0.1.0"
 edition = "2021"
 
@@ -18,3 +18,4 @@ thiserror = "1.0.56"
 chrono = "0.4.31"
 
 shared_lib = { path = "../shared_lib" }
+

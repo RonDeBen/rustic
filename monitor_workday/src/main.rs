@@ -1,8 +1,5 @@
 use monitor_actions::{
-    actions::{
-        long_running_timer_check::LongTimerCheck, midnight_check::MidnightTimerCheck,
-        nearing_eod_check::EodCheck,
-    },
+    actions::{long_running_timer_check::LongTimerCheck, midnight_check::MidnightTimerCheck},
     monitor_orchistrator::MonitorOrchestrator,
 };
 use shared_lib::api_client::ApiClient;
@@ -21,7 +18,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut orchestrator = MonitorOrchestrator::new(api_client);
     orchestrator.add_action(LongTimerCheck {});
-    orchestrator.add_action(EodCheck {});
     orchestrator.add_action(MidnightTimerCheck {});
 
     let check_interval = Duration::from_secs(600); // 10 minutes

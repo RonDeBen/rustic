@@ -4,4 +4,4 @@ members = [
     "server",
     "tui",
     "monitor_workday"
-]
+, "alerts"]

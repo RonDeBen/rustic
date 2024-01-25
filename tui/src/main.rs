@@ -26,7 +26,7 @@ async fn tokio_main() -> Result<()> {
     let args = Cli::parse();
 
     let api_base_url =
-        std::env::var("API_BASE_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+        std::env::var("API_BASE_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
     let api_client = ApiClient::new(api_base_url);
 
     let mut app = App::new(args.tick_rate, args.frame_rate, &api_client).await?;

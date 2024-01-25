@@ -4,7 +4,6 @@ pub mod monitor_orchistrator;
 pub mod actions;
 
 pub enum MonitorActionResult {
-    SendMessage(String),
     StopTimer(i32),
     DeleteEntry(i32),
     Multiple(Vec<MonitorActionResult>),
