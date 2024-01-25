@@ -201,7 +201,11 @@ function setEntryForCell(cellId, hours, note) {
   if (cell) {
     setNoteForCell(cell, note);
     setHoursForCell(cell, hours);
-    cell.classList.add("automated-entry");
+    if (hours !== "" && note !== "") {
+      cell.classList.add("automated-entry");
+    } else {
+      cell.classList.remove("automated-entry");
+    }
   } else {
     console.error("Input cell not found: " + cell);
   }
