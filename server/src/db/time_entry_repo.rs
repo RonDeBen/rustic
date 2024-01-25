@@ -83,14 +83,15 @@ where
     E: Executor<'e, Database = Postgres>,
 {
     let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
-        "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day)
-         VALUES ($1, $2, $3, $4)
+        "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day, created_at)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING id, start_time, total_time, note, day, null as charge_code_id, null as alias",
     )
     .bind(None::<NaiveDateTime>)
     .bind(0.0)
     .bind("")
     .bind(day as i16)
+    .bind(day.into_date())
     .fetch_one(exec)
     .await?;
 
