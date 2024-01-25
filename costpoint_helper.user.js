@@ -30,16 +30,20 @@ function mapDatesToColumns() {
     }
   });
 
-  // Sort the array based on the idNum extracted
   dateMap.sort((a, b) => a.idNum - b.idNum);
 
-  // Create a new object to hold the date to index mapping
+  // we don't get the date divs for dates that aren't on screen
+  // when that happens we need to calculate an offset to correct our indices
+  const firstVisibleDayNum = parseInt(dateMap[0].date.split("/")[1], 10);
+  // this is based on our bi-monthly pay schedule
+  const payPeriodStart = firstVisibleDayNum >= 16 ? 16 : 1;
+  const offset = firstVisibleDayNum - payPeriodStart;
+
   const dateColumnMap = {};
   dateMap.forEach((item, index) => {
-    dateColumnMap[item.date] = index + 1;
+    dateColumnMap[item.date] = index + 1 + offset;
   });
 
-  console.log("dateColumnMap: ", dateColumnMap);
   return dateColumnMap;
 }
 
