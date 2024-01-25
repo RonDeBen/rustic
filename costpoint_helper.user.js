@@ -4,8 +4,15 @@
 // @match https://praeses-cp.costpointfoundations.com/cpweb/masterPage.htm*
 // @version  1
 // @grant    GM.xmlHttpRequest
+// @grant    GM_addStyle
 // @connect *
 // ==/UserScript==
+
+GM_addStyle(`
+  .automated-entry {
+    background-color: yellow;
+  }
+`);
 
 let dateColumnMap = null;
 let chargeCodeRowMap = null;
@@ -138,63 +145,59 @@ function delay(ms) {
 }
 
 function setEntryForCell(cellId, hours, note) {
-  setNoteForCell(cellId, note);
-  setHoursForCell(cellId, hours);
-}
-
-function setHoursForCell(cellId, hours) {
   const cell = document.getElementById(cellId);
   if (cell) {
-    cell.focus(); // Focus on the cell
-    cell.value = String(hours); // Set the hours as a string
-    cell.blur();
+    setNoteForCell(cell, note);
+    setHoursForCell(cell, hours);
+    // cell.style.backgroundColor = "yellow";
+    cell.classList.add("automated-entry");
   } else {
-    console.error("Input cell not found: " + cellId);
+    console.error("Input cell not found: " + cell);
   }
 }
 
-function setNoteForCell(cellId, note) {
-  // Find the cell by ID
-  const cell = document.getElementById(cellId);
-  if (cell) {
-    // Find the span element with the 'tCommentBtn' class within the cell's parent div
-    const noteSpan = cell.parentElement.querySelector(".tCommentBtn");
-    if (noteSpan) {
-      noteSpan.style.display = "inline"; // Make sure the span is visible before clicking
-      noteSpan.click(); // Click the note span to open the note editor
+function setHoursForCell(cell, hours) {
+  cell.focus(); // Focus on the cell
+  cell.value = String(hours); // Set the hours as a string
+  cell.blur();
+}
 
-      // Wait for the note editor to become visible
-      setTimeout(() => {
-        // Try clicking the note icon now that it should be visible
-        const noteIcon = cell.nextElementSibling;
-        if (noteIcon) {
-          noteIcon.click();
-          // Wait for the note editor to open after clicking the icon
-          setTimeout(() => {
-            const noteEditor = document.getElementById("expandoEdit");
-            if (noteEditor) {
-              // Set the note text
-              noteEditor.value = note;
-              // Find the "Ok" button and click it to save the note
-              const okButton = document.getElementById("expandoOK");
-              if (okButton) {
-                okButton.click();
-              } else {
-                console.error("Ok button not found");
-              }
+function setNoteForCell(cell, note) {
+  // Find the span element with the 'tCommentBtn' class within the cell's parent div
+  const noteSpan = cell.parentElement.querySelector(".tCommentBtn");
+  if (noteSpan) {
+    noteSpan.style.display = "inline"; // Make sure the span is visible before clicking
+    noteSpan.click(); // Click the note span to open the note editor
+
+    // Wait for the note editor to become visible
+    setTimeout(() => {
+      // Try clicking the note icon now that it should be visible
+      const noteIcon = cell.nextElementSibling;
+      if (noteIcon) {
+        noteIcon.click();
+        // Wait for the note editor to open after clicking the icon
+        setTimeout(() => {
+          const noteEditor = document.getElementById("expandoEdit");
+          if (noteEditor) {
+            // Set the note text
+            noteEditor.value = note;
+            // Find the "Ok" button and click it to save the note
+            const okButton = document.getElementById("expandoOK");
+            if (okButton) {
+              okButton.click();
             } else {
-              console.error("Note editor not found");
+              console.error("Ok button not found");
             }
-          }, 100);
-        } else {
-          console.error("Note icon not found");
-        }
-      }, 100);
-    } else {
-      console.error("Note span not found");
-    }
+          } else {
+            console.error("Note editor not found");
+          }
+        }, 100);
+      } else {
+        console.error("Note icon not found");
+      }
+    }, 100);
   } else {
-    console.error("Input cell not found");
+    console.error("Note span not found");
   }
 }
 
