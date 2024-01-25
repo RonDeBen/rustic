@@ -14,6 +14,8 @@ GM_addStyle(`
   }
 `);
 
+//------ initialization for the script---------
+
 let dateColumnMap = null;
 let chargeCodeRowMap = null;
 
@@ -73,25 +75,7 @@ function mapChargeCodesToRows() {
   return chargeCodeRowMap;
 }
 
-function fetchTimeEntries() {
-  return new Promise((resolve, reject) => {
-    GM.xmlHttpRequest({
-      method: "GET",
-      url: "http://127.0.0.1:8001/time_entries/costpoint",
-      onload: function (response) {
-        console.log(response);
-        if (response.status === 200) {
-          resolve(JSON.parse(response.responseText));
-        } else {
-          reject(new Error(`HTTP error! Status: ${response.status}`));
-        }
-      },
-      onerror: function (error) {
-        reject(new Error("Error fetching time entries: " + error));
-      },
-    });
-  });
-}
+//------ Core Functions / Writing to Costpoint ---------
 
 async function updateCostpointWithEntries() {
   const timeEntries = await fetchTimeEntries();
@@ -108,62 +92,6 @@ async function updateCostpointWithEntries() {
     const clearUpdates = clearOldAutomatedEntries(updatesList);
     await processUpdates([...updatesList, ...clearUpdates]);
   }
-}
-
-function clearOldAutomatedEntries(updatesList) {
-  const automatedCells = document.querySelectorAll(".automated-entry");
-  const updateCellIds = updatesList.map((update) => update.cellId);
-  let clearUpdates = [];
-
-  automatedCells.forEach((cell) => {
-    if (!updateCellIds.includes(cell.id)) {
-      clearUpdates.push({
-        cellId: cell.id,
-        hours: "",
-        note: "",
-      });
-    }
-  });
-
-  return clearUpdates;
-}
-
-function findInputCellId(chargeCode, date) {
-  const chargeCodeRow = chargeCodeRowMap[chargeCode];
-  const dayIndex = dateColumnMap[date];
-  if (dayIndex !== undefined && chargeCodeRow !== undefined) {
-    const inputCellId = `DAY${dayIndex}_HRS-_${chargeCodeRow}_E`;
-    return inputCellId;
-  }
-  console.error(
-    `Cell ID not found for charge code: ${chargeCode} and date: ${date}`,
-  );
-  return null;
-}
-
-async function example() {
-  // initializing for each button press, because loading in timings are weird
-  initializeMappings();
-  await updateCostpointWithEntries();
-}
-
-async function processUpdates(updatesList) {
-  for (let i = 0; i < updatesList.length; i++) {
-    const firstUpdate = updatesList[i];
-    let secondIndex = (i + 1) % updatesList.length;
-    const secondUpdate = updatesList[secondIndex];
-
-    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
-    await delay(300);
-    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
-    setEntryForCell(secondUpdate.cellId, secondUpdate.hours, secondUpdate.note);
-
-    await delay(900);
-  }
-}
-
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function filterEntriesForUpdate(fetchedEntries) {
@@ -187,13 +115,72 @@ function filterEntriesForUpdate(fetchedEntries) {
   return entriesToUpdate;
 }
 
-function doesCellHaveNote(cell) {
-  const noteIcon = cell.nextElementSibling;
-  return noteIcon && noteIcon.title !== "";
+function clearOldAutomatedEntries(updatesList) {
+  const automatedCells = document.querySelectorAll(".automated-entry");
+  const updateCellIds = updatesList.map((update) => update.cellId);
+  let clearUpdates = [];
+
+  automatedCells.forEach((cell) => {
+    if (!updateCellIds.includes(cell.id)) {
+      clearUpdates.push({
+        cellId: cell.id,
+        hours: "",
+        note: "",
+      });
+    }
+  });
+
+  return clearUpdates;
 }
 
-function doesCellHaveHours(cell) {
-  return cell && cell.value !== "";
+async function processUpdates(updatesList) {
+  for (let i = 0; i < updatesList.length; i++) {
+    const firstUpdate = updatesList[i];
+    let secondIndex = (i + 1) % updatesList.length;
+    const secondUpdate = updatesList[secondIndex];
+
+    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
+    await delay(300);
+    setEntryForCell(firstUpdate.cellId, firstUpdate.hours, firstUpdate.note);
+    setEntryForCell(secondUpdate.cellId, secondUpdate.hours, secondUpdate.note);
+
+    await delay(900);
+  }
+}
+
+//------ utility functions ---------
+
+function fetchTimeEntries() {
+  return new Promise((resolve, reject) => {
+    GM.xmlHttpRequest({
+      method: "GET",
+      url: "http://127.0.0.1:8001/time_entries/costpoint",
+      onload: function (response) {
+        console.log(response);
+        if (response.status === 200) {
+          resolve(JSON.parse(response.responseText));
+        } else {
+          reject(new Error(`HTTP error! Status: ${response.status}`));
+        }
+      },
+      onerror: function (error) {
+        reject(new Error("Error fetching time entries: " + error));
+      },
+    });
+  });
+}
+
+function findInputCellId(chargeCode, date) {
+  const chargeCodeRow = chargeCodeRowMap[chargeCode];
+  const dayIndex = dateColumnMap[date];
+  if (dayIndex !== undefined && chargeCodeRow !== undefined) {
+    const inputCellId = `DAY${dayIndex}_HRS-_${chargeCodeRow}_E`;
+    return inputCellId;
+  }
+  console.error(
+    `Cell ID not found for charge code: ${chargeCode} and date: ${date}`,
+  );
+  return null;
 }
 
 function setEntryForCell(cellId, hours, note) {
@@ -256,6 +243,21 @@ function setNoteForCell(cell, note) {
   }
 }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function doesCellHaveNote(cell) {
+  const noteIcon = cell.nextElementSibling;
+  return noteIcon && noteIcon.title !== "";
+}
+
+function doesCellHaveHours(cell) {
+  return cell && cell.value !== "";
+}
+
+// -------UI Elements and Event Listeners-------
+
 let button = document.createElement("button");
 button.textContent = "Automatically Enter Time Entries!!";
 button.style.position = "fixed";
@@ -264,7 +266,13 @@ button.style.right = "10px";
 button.style.zIndex = "1000";
 
 // Attach event listener to the button
-button.addEventListener("click", example);
+button.addEventListener("click", automateEntries);
 
 // Add the button to the body of the page
 document.body.appendChild(button);
+
+async function automateEntries() {
+  // initializing for each button press, because loading in timings are weird
+  initializeMappings();
+  await updateCostpointWithEntries();
+}
