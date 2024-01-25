@@ -93,9 +93,10 @@ function fetchTimeEntries() {
   });
 }
 
-async function updateCostpointWithEntries(date) {
-  const timeEntries = await fetchTimeEntries(date);
+async function updateCostpointWithEntries() {
+  const timeEntries = await fetchTimeEntries();
   console.log("timeEntries: ", timeEntries);
+  timeEntries = filterEntriesForUpdate(timeEntries);
   if (timeEntries && timeEntries.length > 0) {
     let updatesList = timeEntries.map((entry) => ({
       cellId: findInputCellId(entry.charge_code, entry.date),
@@ -144,12 +145,38 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function filterEntriesForUpdate(fetchedEntries) {
+  const entriesToUpdate = fetchedEntries.filter((entry) => {
+    const cellId = findInputCellId(entry.charge_code, entry.date);
+    const cell = document.getElementById(cellId);
+    const isAutomated = input.classList.contains("automated-entry");
+
+    // if it doesn't have a note or hours, it's a saved entry, so we don't want to update it
+    // if we marked it as automated, it's okay to change
+    return isAutomated || !doesCellHaveNote(cell) || !doesCellHaveHours(cell);
+  });
+
+  return entriesToUpdate;
+}
+
+function doesCellHaveNote(cell) {
+  if (cell) {
+    const noteIcon = cell.nextElementSibling;
+    return noteIcon.title === "";
+  } else {
+    return false;
+  }
+}
+
+function doesCellHaveHours(cell) {
+  return cell && cell.value !== "";
+}
+
 function setEntryForCell(cellId, hours, note) {
   const cell = document.getElementById(cellId);
   if (cell) {
     setNoteForCell(cell, note);
     setHoursForCell(cell, hours);
-    // cell.style.backgroundColor = "yellow";
     cell.classList.add("automated-entry");
   } else {
     console.error("Input cell not found: " + cell);
