@@ -96,15 +96,36 @@ function fetchTimeEntries() {
 async function updateCostpointWithEntries() {
   const timeEntries = await fetchTimeEntries();
   console.log("timeEntries: ", timeEntries);
-  timeEntries = filterEntriesForUpdate(timeEntries);
-  if (timeEntries && timeEntries.length > 0) {
-    let updatesList = timeEntries.map((entry) => ({
+  let filteredEntries = filterEntriesForUpdate(timeEntries);
+
+  if (filteredEntries && filteredEntries.length > 0) {
+    let updatesList = filteredEntries.map((entry) => ({
       cellId: findInputCellId(entry.charge_code, entry.date),
       hours: entry.hours,
       note: entry.notes,
     }));
-    await processUpdates(updatesList);
+
+    const clearUpdates = clearOldAutomatedEntries(updatesList);
+    await processUpdates([...updatesList, ...clearUpdates]);
   }
+}
+
+function clearOldAutomatedEntries(updatesList) {
+  const automatedCells = document.querySelectorAll(".automated-entry");
+  const updateCellIds = updatesList.map((update) => update.cellId);
+  let clearUpdates = [];
+
+  automatedCells.forEach((cell) => {
+    if (!updateCellIds.includes(cell.id)) {
+      clearUpdates.push({
+        cellId: cell.id,
+        hours: "",
+        note: "",
+      });
+    }
+  });
+
+  return clearUpdates;
 }
 
 function findInputCellId(chargeCode, date) {
@@ -149,23 +170,26 @@ function filterEntriesForUpdate(fetchedEntries) {
   const entriesToUpdate = fetchedEntries.filter((entry) => {
     const cellId = findInputCellId(entry.charge_code, entry.date);
     const cell = document.getElementById(cellId);
-    const isAutomated = input.classList.contains("automated-entry");
 
-    // if it doesn't have a note or hours, it's a saved entry, so we don't want to update it
-    // if we marked it as automated, it's okay to change
-    return isAutomated || !doesCellHaveNote(cell) || !doesCellHaveHours(cell);
+    if (cell) {
+      const isAutomated = cell.classList.contains("automated-entry");
+
+      // If automated, always include
+      if (isAutomated) return true;
+
+      // If not automated, include only if both note and hours are missing
+      return !doesCellHaveNote(cell) && !doesCellHaveHours(cell);
+    }
+
+    return false; // If cell not found, do not include
   });
 
   return entriesToUpdate;
 }
 
 function doesCellHaveNote(cell) {
-  if (cell) {
-    const noteIcon = cell.nextElementSibling;
-    return noteIcon.title === "";
-  } else {
-    return false;
-  }
+  const noteIcon = cell.nextElementSibling;
+  return noteIcon && noteIcon.title !== "";
 }
 
 function doesCellHaveHours(cell) {
