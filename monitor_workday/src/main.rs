@@ -23,10 +23,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let check_interval = Duration::from_secs(600); // 10 minutes
 
     loop {
-        sleep(check_interval).await;
-
         if let Err(e) = orchestrator.monitor_actions().await {
             log::error!("Error while running monitor actions: {}", e);
         }
+
+        sleep(check_interval).await;
     }
 }

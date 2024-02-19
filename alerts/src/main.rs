@@ -17,10 +17,10 @@ async fn main() -> Result<()> {
         std::env::var("SERVER_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
     let api_client = ApiClient::new(api_base_url);
 
-    let interval_secs = std::env::var("CHECK_INTERVAL_SECS").unwrap_or("5".to_string()); // 5 minutes
+    let interval_secs = std::env::var("CHECK_INTERVAL_SECS").unwrap_or("300".to_string()); // 5 minutes
     let check_interval = match interval_secs.parse::<u64>() {
         Ok(secs) => Duration::from_secs(secs),
-        Err(_) => Duration::from_secs(5), // 5 minutes
+        Err(_) => Duration::from_secs(500), // 5 minutes
     };
 
     let mut notification_sent = false;
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
             last_notification_day = Some(current_day);
         }
 
-        if !notification_sent && eod_check(&api_client).await? {
+        if !notification_sent && eod_check(&api_client).await {
             log::info!("End-of-day notification sent for {:?}", current_day);
             notification_sent = true;
         }
@@ -46,25 +46,33 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn eod_check(client: &ApiClient) -> Result<bool> {
-    let full_state = client.get_full_state().await?;
+async fn eod_check(client: &ApiClient) -> bool {
+    let full_state = match client.get_full_state().await {
+        Ok(state) => state,
+        Err(e) => {
+            log::error!("Failed to get full state: {:?}", e);
+            return false;
+        }
+    };
 
     let current_day = Day::get_current_day();
 
     let todays_entries = match full_state.get_vms_for_day(current_day) {
         Some(vms) => vms,
-        None => return Ok(false),
+        None => return false,
     };
 
     let total_minutes = sum_to_nearest_quarter_hour(todays_entries.as_slice());
 
-    // 7.5 hours worked
-    match total_minutes >= 450 {
-        true => {
-            send_notification("You are close to 8 hours worked today!!")?;
-            Ok(true)
+    // 7.5 hours
+    if total_minutes >= 450 {
+        if let Err(e) = send_notification("You are close to 8 hours worked today!!") {
+            log::error!("Failed to send notification: {:?}", e);
+            return false;
         }
-        false => Ok(false),
+        true
+    } else {
+        false
     }
 }
 
