@@ -33,6 +33,7 @@ pub enum TTAct {
     UpdateSelectedEntry,
     EditChargeCode(i32),
     EditTime(EditTimeAction),
+    SwapTime(i32),
     UpdateMode(Mode),
 }
 

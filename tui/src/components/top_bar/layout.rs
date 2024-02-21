@@ -43,12 +43,6 @@ impl Component for TopBar {
         Ok(())
     }
 
-    fn init(&mut self, area: Rect) -> Result<()> {
-        self.weekday_selector.init(area)?;
-        self.mode_selector.init(area)?;
-        Ok(())
-    }
-
     fn register_action_handler(&mut self, tx: UnboundedSender<Action>) -> Result<()> {
         self.weekday_selector.register_action_handler(tx.clone())?;
         self.mode_selector.register_action_handler(tx)?;

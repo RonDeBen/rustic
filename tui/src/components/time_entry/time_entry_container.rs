@@ -192,6 +192,11 @@ impl Component for TimeEntryContainer {
                     tx.send(Action::TT(TTAct::EditChargeCode(entry.id)))?;
                 }
             }
+            KeyCode::Char('s') => {
+                if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
+                    tx.send(Action::TT(TTAct::SwapTime(entry.id)))?;
+                }
+            }
             _ => {}
         }
 

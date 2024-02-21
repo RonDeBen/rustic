@@ -1,6 +1,9 @@
 use super::{
     component_utils::draw_tooltip_bar,
-    modals::{charge_code_picker::ChargeCodePickerModal, time_edit_modal::TimeEditModal},
+    modals::{
+        charge_code_picker::ChargeCodePickerModal, swap_time_modal::layout::SwapTimeModal,
+        time_edit_modal::TimeEditModal,
+    },
     notes::Notes,
     standup::standup_container::StandupContainer,
     time_entry::{entry::TimeEntry, time_entry_container::TimeEntryContainer},
@@ -31,6 +34,7 @@ pub struct Home<'a> {
     notes: Notes<'a>,
     charge_code_modal: ChargeCodePickerModal,
     time_edit_modal: TimeEditModal,
+    swap_time_modal: SwapTimeModal,
     standup_container: StandupContainer,
     // data
     full_state: FullState,
@@ -41,7 +45,7 @@ pub struct Home<'a> {
 impl Home<'_> {
     pub fn new(starting_state: FullState) -> Self {
         let current_day = Day::get_current_day();
-        let current_entries = starting_state.get_time_entries_for_day(current_day);
+        let current_entries = starting_state.get_current_time_entries();
         let time_entry_container = TimeEntryContainer::new(current_entries, 0, current_day);
         let charge_code_modal = ChargeCodePickerModal::new(starting_state.charge_codes.as_slice());
 
@@ -52,6 +56,7 @@ impl Home<'_> {
             time_entry_container,
             charge_code_modal,
             time_edit_modal: TimeEditModal::default(),
+            swap_time_modal: SwapTimeModal::default(),
             notes: Notes::default(),
             full_state: starting_state,
             current_day,
@@ -147,6 +152,9 @@ impl Home<'_> {
         if self.time_edit_modal.is_active {
             self.time_edit_modal.draw(f, layout[1])?;
         }
+        if self.swap_time_modal.is_active {
+            self.swap_time_modal.draw(f, layout[1])?;
+        }
 
         self.notes.draw(f, layout[2])?;
 
@@ -189,6 +197,7 @@ impl Component for Home<'_> {
         self.notes.register_action_handler(tx.clone())?;
         self.charge_code_modal.register_action_handler(tx.clone())?;
         self.time_edit_modal.register_action_handler(tx.clone())?;
+        self.swap_time_modal.register_action_handler(tx.clone())?;
 
         // hacky: this initalizes the system with the right entry selected
         self.time_entry_container.send_index_action();
@@ -235,7 +244,20 @@ impl Component for Home<'_> {
                 }
                 TTAct::UpdateMode(mode) => {
                     self.update_standup_for_current_day();
-                    self.mode = mode
+                    self.mode = mode;
+                }
+                TTAct::SwapTime(id) => {
+                    self.swap_time_modal.set_swap_from_id(id);
+
+                    let other_entries: Vec<TimeEntry> = self
+                        .full_state
+                        .get_current_time_entries()
+                        .into_iter()
+                        .filter(|entry| entry.id != id)
+                        .collect();
+
+                    self.swap_time_modal.set_other_entries(other_entries);
+                    self.swap_time_modal.toggle();
                 }
             },
             Action::Api(api_action) => {
@@ -256,6 +278,8 @@ impl Component for Home<'_> {
             self.charge_code_modal.handle_key_events(key)?;
         } else if self.time_edit_modal.is_active {
             self.time_edit_modal.handle_key_events(key)?;
+        } else if self.swap_time_modal.is_active {
+            self.swap_time_modal.handle_key_events(key)?;
         } else {
             match key.code {
                 KeyCode::Char('q') => return Ok(Some(Action::UI(Quit))),
