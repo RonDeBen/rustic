@@ -75,6 +75,22 @@ impl ApiClient {
             .await
     }
 
+    pub async fn add_time_to_entry(
+        &self,
+        time_entry_id: i32,
+        add_time: i64,
+    ) -> Result<TimeEntryVM, reqwest::Error> {
+        self.client
+            .put(&format!(
+                "{}/time_entries/{}/add_time/{}",
+                self.base_url, time_entry_id, add_time
+            ))
+            .send()
+            .await?
+            .json::<TimeEntryVM>()
+            .await
+    }
+
     pub async fn update_entry_note(
         &self,
         id: i32,

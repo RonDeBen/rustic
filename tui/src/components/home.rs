@@ -165,6 +165,7 @@ impl Home<'_> {
             "Play/Pause [Space]",
             "Code [c]",
             "Time [t]",
+            "Swap [s]",
         ];
         draw_tooltip_bar(f, layout[3], &tooltips);
 

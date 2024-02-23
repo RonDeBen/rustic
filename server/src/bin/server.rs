@@ -27,6 +27,10 @@ async fn main() {
             put(update_time_entry_time_request),
         )
         .route(
+            "/time_entries/:id/add_time/:add_time",
+            put(add_time_to_entry_request),
+        )
+        .route(
             "/time_entries/:id/note",
             put(update_time_entry_note_request),
         )

@@ -141,6 +141,27 @@ where
     Ok(())
 }
 
+pub async fn add_time_to_entry<'e, E>(
+    exec: E,
+    entry_id: i32,
+    add_time: i64,
+) -> Result<(), sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query(
+        "UPDATE time_tracking.time_entries
+         SET total_time = GREATEST(0, total_time + $2)
+         WHERE id = $1",
+    )
+    .bind(entry_id)
+    .bind(add_time)
+    .execute(exec)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn update_time_entry_note<'e, E>(
     exec: E,
     id: i32,

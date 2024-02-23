@@ -1,24 +1,19 @@
-use crate::{
-    action::Action,
-    components::{component_utils::draw_tooltip_bar, Component},
-};
+use crate::{action::Action, components::Component};
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, ListState, Paragraph},
+    widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 pub struct SwapTimeEdit {
     time_string: String,
     cursor_pos: u8,
     pub is_active: bool,
     pub entry_id: i32,
-    command_tx: Option<UnboundedSender<Action>>,
 }
 
 impl Default for SwapTimeEdit {
@@ -28,7 +23,6 @@ impl Default for SwapTimeEdit {
             cursor_pos: 1,
             is_active: false,
             entry_id: -1,
-            command_tx: None,
         }
     }
 }
@@ -42,6 +36,10 @@ enum TimeUnit {
 impl SwapTimeEdit {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn clear_time(&mut self){
+        self.time_string =  "000000".to_string();
     }
 
     pub fn set_time(&mut self, milliseconds: i64) {
@@ -60,7 +58,7 @@ impl SwapTimeEdit {
         }
     }
 
-    fn get_total_milliseconds(&self) -> Option<i64> {
+    pub fn get_total_milliseconds(&self) -> Option<i64> {
         let hours = self.time_string[0..2].parse::<i64>().ok()?;
         let minutes = self.time_string[2..4].parse::<i64>().ok()?;
         let seconds = self.time_string[4..6].parse::<i64>().ok()?;
@@ -109,18 +107,6 @@ impl SwapTimeEdit {
         } else {
             self.cursor_pos -= 1;
         }
-    }
-
-    fn move_focus_forward(&mut self) {
-        self.cursor_pos = (self.cursor_pos / 2 * 2 + 2) % 6;
-    }
-
-    fn move_focus_backward(&mut self) {
-        self.cursor_pos = if self.cursor_pos == 0 || self.cursor_pos == 1 {
-            4
-        } else {
-            self.cursor_pos / 2 * 2 - 2
-        };
     }
 
     fn get_hours(&self) -> String {

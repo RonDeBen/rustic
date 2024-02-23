@@ -57,6 +57,15 @@ pub struct EntryAndTimePath {
     total_time: i64,
 }
 
+pub async fn add_time_to_entry_request(
+    Path((id, add_time)): Path<(i32, i64)>,
+    Extension(pool): Extension<PgPool>,
+) -> Result<Json<TimeEntryVM>> {
+    add_time_to_entry(&pool, id, add_time).await?;
+    let updated_entry = fetch_time_entry_by_id(&pool, id).await?;
+    Ok(Json(updated_entry.into()))
+}
+
 pub async fn update_time_entry_time_request(
     Path(params): Path<EntryAndTimePath>,
     Extension(pool): Extension<PgPool>,

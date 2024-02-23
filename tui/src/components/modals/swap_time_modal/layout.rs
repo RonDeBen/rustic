@@ -1,6 +1,7 @@
 use super::{swap_entry_list::SwapEntryList, swap_time_edit_timer::SwapTimeEdit};
 use crate::{
     action::Action,
+    api_client::ApiRequest::AddTime,
     components::{component_utils::draw_tooltip_bar, time_entry::entry::TimeEntry, Component},
     tui::Frame,
 };
@@ -34,6 +35,10 @@ enum ActiveArea {
 impl SwapTimeModal {
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
+
+        if self.is_active{
+            self.time_edit_component.clear_time();
+        }
     }
 
     pub fn set_swap_from_id(&mut self, id: i32) {
@@ -57,6 +62,40 @@ impl SwapTimeModal {
                 ActiveArea::EntryList
             }
         }
+    }
+
+    fn swap_time(&mut self) -> Result<Option<Action>> {
+        let swap_to_entry = self.list_component.get_selected_entry();
+        let swap_time = self.time_edit_component.get_total_milliseconds();
+
+        if let (Some(swap_to_entry), Some(swap_time)) = (swap_to_entry, swap_time) {
+            return self.swap_time_inner(self.swap_from_id, swap_to_entry.id, swap_time);
+        }
+
+        Ok(None)
+    }
+
+    fn swap_time_inner(
+        &mut self,
+        swap_from_id: i32,
+        swap_to_id: i32,
+        swap_time_millis: i64,
+    ) -> Result<Option<Action>> {
+        if let Some(tx) = &self.command_tx {
+            tx.send(Action::api_request_action(AddTime {
+                id: swap_from_id,
+                millis: -swap_time_millis,
+            }))?;
+
+            tx.send(Action::api_request_action(AddTime {
+                id: swap_to_id,
+                millis: swap_time_millis,
+            }))?;
+        }
+
+        self.toggle();
+
+        Ok(None)
     }
 }
 
@@ -126,9 +165,7 @@ impl Component for SwapTimeModal {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         let _ = match key.code {
-            KeyCode::Enter =>{
-                Ok(None)
-            }
+            KeyCode::Enter => self.swap_time(),
             KeyCode::Esc => {
                 self.toggle();
                 Ok(None)

@@ -3,7 +3,7 @@ use crate::{
     components::{time_entry::entry::TimeEntry, Component},
 };
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -33,6 +33,11 @@ impl SwapEntryList {
         if !self.time_entries.is_empty() {
             self.list_state.select(Some(0));
         }
+    }
+
+    pub fn get_selected_entry(&self) -> Option<TimeEntry> {
+        let selected_index = self.list_state.selected()?;
+        self.time_entries.get(selected_index).cloned()
     }
 
     pub fn previous(&mut self) {
@@ -112,7 +117,7 @@ impl Component for SwapEntryList {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         match key.code {
-             KeyCode::Down | KeyCode::Char('j') => {
+            KeyCode::Down | KeyCode::Char('j') => {
                 self.next();
             }
             KeyCode::Up | KeyCode::Char('k') => {

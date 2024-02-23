@@ -2,10 +2,13 @@ pub mod models;
 
 use crate::action::{Action, ApiAct, UIAct};
 use serde::{Deserialize, Serialize};
-use shared_lib::{models::{
-    full_state::{DayTimeEntries, FullState},
-    time_entry::TimeEntryVM,
-}, api_client::ApiClient};
+use shared_lib::{
+    api_client::ApiClient,
+    models::{
+        full_state::{DayTimeEntries, FullState},
+        time_entry::TimeEntryVM,
+    },
+};
 use strum::Display;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -20,6 +23,10 @@ pub enum ApiRequest {
         charge_code_id: i32,
     },
     SetTime {
+        id: i32,
+        millis: i64,
+    },
+    AddTime {
         id: i32,
         millis: i64,
     },
@@ -56,11 +63,14 @@ pub trait ApiClientExt {
     #[allow(async_fn_in_trait)]
     async fn process_api_action(&self, action: &ApiAct, action_tx: &UnboundedSender<Action>);
     #[allow(async_fn_in_trait)]
-    async fn process_api_action_inner(&self, action: &ApiAct, action_tx: &UnboundedSender<Action>) -> Result<(), reqwest::Error>;
+    async fn process_api_action_inner(
+        &self,
+        action: &ApiAct,
+        action_tx: &UnboundedSender<Action>,
+    ) -> Result<(), reqwest::Error>;
 }
 
 impl ApiClientExt for ApiClient {
-
     async fn process_api_action(&self, action: &ApiAct, action_tx: &UnboundedSender<Action>) {
         match self.process_api_action_inner(action, action_tx).await {
             Ok(_x) => {}
@@ -126,6 +136,14 @@ impl ApiClientExt for ApiClient {
                         .unwrap();
                     Ok(())
                 }
+                ApiRequest::AddTime { id, millis } => {
+                    let rcv = self.add_time_to_entry(*id, *millis).await?;
+                    let response = ApiResponse::TimeEntryUpdate(rcv);
+                    action_tx
+                        .send(Action::api_response_action(response))
+                        .unwrap();
+                    Ok(())
+                },
                 ApiRequest::PlayEntry { id } => {
                     let rcv = self.play_entry(*id).await?;
                     let response = ApiResponse::DayEntriesUpdate(rcv);
@@ -168,103 +186,102 @@ impl ApiClientExt for ApiClient {
             }
         }
     }
-
 }
 
-    // pub fn new(base_url: String) -> Self {
-    //     ApiClient {
-    //         client: Client::new(),
-    //         base_url,
-    //     }
-    // }
-    //
-    // pub async fn get_full_state(&self) -> Result<FullState, reqwest::Error> {
-    //     self.client
-    //         .get(&format!("{}/full_state", self.base_url))
-    //         .send()
-    //         .await?
-    //         .json::<FullState>()
-    //         .await
-    // }
+// pub fn new(base_url: String) -> Self {
+//     ApiClient {
+//         client: Client::new(),
+//         base_url,
+//     }
+// }
+//
+// pub async fn get_full_state(&self) -> Result<FullState, reqwest::Error> {
+//     self.client
+//         .get(&format!("{}/full_state", self.base_url))
+//         .send()
+//         .await?
+//         .json::<FullState>()
+//         .await
+// }
 
-    // pub async fn create_time_entry(&self, day: i16) -> Result<DayTimeEntries, reqwest::Error> {
-    //     self.client
-    //         .post(&format!("{}/time_entries/day/{}", self.base_url, day))
-    //         .send()
-    //         .await?
-    //         .json::<DayTimeEntries>()
-    //         .await
-    // }
+// pub async fn create_time_entry(&self, day: i16) -> Result<DayTimeEntries, reqwest::Error> {
+//     self.client
+//         .post(&format!("{}/time_entries/day/{}", self.base_url, day))
+//         .send()
+//         .await?
+//         .json::<DayTimeEntries>()
+//         .await
+// }
 
-    // pub async fn update_time_entry_charge_code(
-    //     &self,
-    //     time_entry_id: i32,
-    //     charge_code_id: i32,
-    // ) -> Result<TimeEntryVM, reqwest::Error> {
-    //     self.client
-    //         .put(&format!(
-    //             "{}/time_entries/{}/charge_code/{}",
-    //             self.base_url, time_entry_id, charge_code_id
-    //         ))
-    //         .send()
-    //         .await?
-    //         .json::<TimeEntryVM>()
-    //         .await
-    // }
+// pub async fn update_time_entry_charge_code(
+//     &self,
+//     time_entry_id: i32,
+//     charge_code_id: i32,
+// ) -> Result<TimeEntryVM, reqwest::Error> {
+//     self.client
+//         .put(&format!(
+//             "{}/time_entries/{}/charge_code/{}",
+//             self.base_url, time_entry_id, charge_code_id
+//         ))
+//         .send()
+//         .await?
+//         .json::<TimeEntryVM>()
+//         .await
+// }
 
-    // pub async fn update_time_entry_time(
-    //     &self,
-    //     time_entry_id: i32,
-    //     total_time: i64,
-    // ) -> Result<TimeEntryVM, reqwest::Error> {
-    //     self.client
-    //         .put(&format!(
-    //             "{}/time_entries/{}/time/{}",
-    //             self.base_url, time_entry_id, total_time
-    //         ))
-    //         .send()
-    //         .await?
-    //         .json::<TimeEntryVM>()
-    //         .await
-    // }
+// pub async fn update_time_entry_time(
+//     &self,
+//     time_entry_id: i32,
+//     total_time: i64,
+// ) -> Result<TimeEntryVM, reqwest::Error> {
+//     self.client
+//         .put(&format!(
+//             "{}/time_entries/{}/time/{}",
+//             self.base_url, time_entry_id, total_time
+//         ))
+//         .send()
+//         .await?
+//         .json::<TimeEntryVM>()
+//         .await
+// }
 
-    // pub async fn update_entry_note(
-    //     &self,
-    //     id: i32,
-    //     note: String,
-    // ) -> Result<TimeEntryVM, reqwest::Error> {
-    //     self.client
-    //         .put(&format!("{}/time_entries/{}/note", self.base_url, id))
-    //         .json(&NotePaylaod { note })
-    //         .send()
-    //         .await?
-    //         .json::<TimeEntryVM>()
-    //         .await
-    // }
+// pub async fn update_entry_note(
+//     &self,
+//     id: i32,
+//     note: String,
+// ) -> Result<TimeEntryVM, reqwest::Error> {
+//     self.client
+//         .put(&format!("{}/time_entries/{}/note", self.base_url, id))
+//         .json(&NotePaylaod { note })
+//         .send()
+//         .await?
+//         .json::<TimeEntryVM>()
+//         .await
+// }
 
-    // pub async fn play_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
-    //     self.client
-    //         .put(&format!("{}/time_entries/{}/play", self.base_url, id))
-    //         .send()
-    //         .await?
-    //         .json::<DayTimeEntries>()
-    //         .await
-    // }
+// pub async fn play_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
+//     self.client
+//         .put(&format!("{}/time_entries/{}/play", self.base_url, id))
+//         .send()
+//         .await?
+//         .json::<DayTimeEntries>()
+//         .await
+// }
 
-    // pub async fn pause_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
-    //     self.client
-    //         .put(&format!("{}/time_entries/{}/pause", self.base_url, id))
-    //         .send()
-    //         .await?
-    //         .json::<DayTimeEntries>()
-    //         .await
-    // }
+// pub async fn pause_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
+//     self.client
+//         .put(&format!("{}/time_entries/{}/pause", self.base_url, id))
+//         .send()
+//         .await?
+//         .json::<DayTimeEntries>()
+//         .await
+// }
 
-    // pub async fn delete_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
-    //     self.client
-    //         .delete(&format!("{}/time_entries/{}", self.base_url, id))
-    //         .send()
-    //         .await?
-    //         .json::<DayTimeEntries>()
-    //         .await
-    // }
+// pub async fn delete_entry(&self, id: i32) -> Result<DayTimeEntries, reqwest::Error> {
+//     self.client
+//         .delete(&format!("{}/time_entries/{}", self.base_url, id))
+//         .send()
+//         .await?
+//         .json::<DayTimeEntries>()
+//         .await
+// }
