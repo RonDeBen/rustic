@@ -111,18 +111,14 @@ impl Component for SwapEntryList {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        if key.modifiers.contains(KeyModifiers::SHIFT) && key.code == KeyCode::BackTab {
-            self.previous();
-        } else {
-            match key.code {
-                KeyCode::Tab | KeyCode::Down | KeyCode::Char('j') => {
-                    self.next();
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.previous();
-                }
-                _ => {}
+        match key.code {
+             KeyCode::Down | KeyCode::Char('j') => {
+                self.next();
             }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.previous();
+            }
+            _ => {}
         }
 
         Ok(None)

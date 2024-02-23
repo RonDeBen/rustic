@@ -108,7 +108,11 @@ impl Component for SwapTimeModal {
         self.time_edit_component.draw(f, chunks[1])?;
 
         // Draw the tooltip bar in the third chunk
-        let tooltips = vec!["Select [Enter]", "Back [Esc]"];
+        let tooltips = vec![
+            "Swap Time [Enter]",
+            "Back [Esc]",
+            "Switch Focus [Tab/Backtab]",
+        ];
         draw_tooltip_bar(f, chunks[2], &tooltips);
 
         Ok(())
@@ -122,8 +126,15 @@ impl Component for SwapTimeModal {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         let _ = match key.code {
+            KeyCode::Enter =>{
+                Ok(None)
+            }
             KeyCode::Esc => {
                 self.toggle();
+                Ok(None)
+            }
+            KeyCode::Tab | KeyCode::BackTab => {
+                self.swap_active_area();
                 Ok(None)
             }
             KeyCode::Up | KeyCode::Char('k') | KeyCode::Down | KeyCode::Char('j') => {

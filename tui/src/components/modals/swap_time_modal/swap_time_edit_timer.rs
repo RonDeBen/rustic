@@ -222,7 +222,11 @@ impl Component for SwapTimeEdit {
         // Divide the inner area into three equal parts for the components
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(33)])
+            .constraints([
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ])
             .split(inner_area);
 
         self.draw_time_component(f, chunks[0], TimeUnit::Hours);
@@ -237,12 +241,6 @@ impl Component for SwapTimeEdit {
             match key.code {
                 KeyCode::Char(c) if c.is_ascii_digit() => {
                     self.handle_digit_input(c);
-                }
-                KeyCode::Tab => {
-                    self.move_focus_forward();
-                }
-                KeyCode::BackTab => {
-                    self.move_focus_backward();
                 }
                 KeyCode::Left | KeyCode::Char('h') => {
                     self.move_cursor_left();
