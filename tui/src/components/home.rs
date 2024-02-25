@@ -26,7 +26,6 @@ use ratatui::prelude::*;
 use shared_lib::models::{
     day::Day,
     full_state::{FullState, TimeEntriesDiff},
-    time_entry::TimeEntryVM,
 };
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -210,6 +209,8 @@ impl Home<'_> {
             "Code [c]",
             "Time [t]",
             "Swap [s]",
+            "Undo [u]",
+            "Redo [ctrl+r]",
         ];
         draw_tooltip_bar(f, layout[3], &tooltips);
 
