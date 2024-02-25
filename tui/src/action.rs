@@ -35,6 +35,7 @@ pub enum TTAct {
     EditTime(EditTimeAction),
     SwapTime(i32),
     UpdateMode(Mode),
+    SaveState,
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize, Debug)]

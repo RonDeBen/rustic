@@ -1,4 +1,5 @@
 pub mod action;
+pub mod action_history;
 pub mod api_client;
 pub mod app;
 pub mod cli;

@@ -1,6 +1,6 @@
 use super::{swap_entry_list::SwapEntryList, swap_time_edit_timer::SwapTimeEdit};
 use crate::{
-    action::Action,
+    action::{Action, TTAct},
     api_client::ApiRequest::AddTime,
     components::{component_utils::draw_tooltip_bar, time_entry::entry::TimeEntry, Component},
     tui::Frame,
@@ -36,7 +36,7 @@ impl SwapTimeModal {
     pub fn toggle(&mut self) {
         self.is_active = !self.is_active;
 
-        if self.is_active{
+        if self.is_active {
             self.time_edit_component.clear_time();
         }
     }
@@ -165,7 +165,9 @@ impl Component for SwapTimeModal {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         let _ = match key.code {
-            KeyCode::Enter => self.swap_time(),
+            KeyCode::Enter => {
+                self.swap_time()
+            }
             KeyCode::Esc => {
                 self.toggle();
                 Ok(None)

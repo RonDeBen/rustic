@@ -15,14 +15,19 @@ use crate::{
         Action, ApiAct, TTAct,
         UIAct::{self, *},
     },
-    api_client::{models::FullStateExt, ApiResponse},
+    action_history::ActionHistory,
+    api_client::{models::FullStateExt, ApiRequest, ApiResponse},
     config::Config,
     mode::Mode,
 };
 use color_eyre::eyre::Result;
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
-use shared_lib::models::{day::Day, full_state::FullState};
+use shared_lib::models::{
+    day::Day,
+    full_state::{FullState, TimeEntriesDiff},
+    time_entry::TimeEntryVM,
+};
 use tokio::sync::mpsc::UnboundedSender;
 
 pub struct Home<'a> {
@@ -40,6 +45,8 @@ pub struct Home<'a> {
     full_state: FullState,
     current_day: Day,
     mode: Mode,
+    // handles undos and redos
+    state_history: ActionHistory,
 }
 
 impl Home<'_> {
@@ -62,6 +69,43 @@ impl Home<'_> {
             current_day,
             mode: Mode::default(),
             standup_container: StandupContainer::default(),
+            state_history: ActionHistory::default(),
+        }
+    }
+
+    fn undo_action(&mut self) {
+        if let Some(previous_state) = self.state_history.undo() {
+            self.state_history.redo_stack.push(self.full_state.clone());
+            self.apply_diff(previous_state);
+        }
+    }
+
+    fn redo_action(&mut self) {
+        if let Some(redo_state) = self.state_history.redo() {
+            self.state_history.undo_stack.push(self.full_state.clone());
+            self.apply_diff(redo_state);
+        }
+    }
+
+    fn save_state_before_action(&mut self) {
+        self.state_history.before_action(&self.full_state);
+    }
+
+    fn apply_diff(&self, previous_state: FullState) {
+        let diff_entries = self.full_state.diff(&previous_state);
+        self.send_diff_updates(diff_entries);
+    }
+
+    fn send_diff_updates(&self, diff: TimeEntriesDiff) {
+        if let Some(tx) = &self.command_tx {
+            for entry in diff.to_upsert {
+                let request = ApiRequest::FullEntryUpdate { entry };
+                tx.send(Action::api_request_action(request)).unwrap()
+            }
+            for id in diff.to_delete {
+                let request = ApiRequest::DeleteEntry { id };
+                tx.send(Action::api_request_action(request)).unwrap()
+            }
         }
     }
 
@@ -232,13 +276,16 @@ impl Component for Home<'_> {
                     self.update_standup_for_current_day();
                 }
                 TTAct::UpdateSelectedEntry => {
+                    self.save_state_before_action();
                     self.set_note_for_entry(self.time_entry_container.get_selected_entry());
                 }
                 TTAct::EditChargeCode(id) => {
+                    self.save_state_before_action();
                     self.charge_code_modal.set_charge_code_id(id);
                     self.charge_code_modal.toggle();
                 }
                 TTAct::EditTime(time_action) => {
+                    self.save_state_before_action();
                     self.time_edit_modal.set_time(time_action.millis);
                     self.time_edit_modal.set_entry_id(time_action.id);
                     self.time_edit_modal.toggle();
@@ -248,6 +295,7 @@ impl Component for Home<'_> {
                     self.mode = mode;
                 }
                 TTAct::SwapTime(id) => {
+                    self.save_state_before_action();
                     self.swap_time_modal.set_swap_from_id(id);
 
                     let other_entries: Vec<TimeEntry> = self
@@ -260,6 +308,7 @@ impl Component for Home<'_> {
                     self.swap_time_modal.set_other_entries(other_entries);
                     self.swap_time_modal.toggle();
                 }
+                TTAct::SaveState => self.save_state_before_action(),
             },
             Action::Api(api_action) => {
                 // only handle the responses here
@@ -274,23 +323,38 @@ impl Component for Home<'_> {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
         if self.notes.is_edit_mode {
-            self.notes.handle_key_events(key)?;
-        } else if self.charge_code_modal.is_active {
-            self.charge_code_modal.handle_key_events(key)?;
-        } else if self.time_edit_modal.is_active {
-            self.time_edit_modal.handle_key_events(key)?;
-        } else if self.swap_time_modal.is_active {
-            self.swap_time_modal.handle_key_events(key)?;
-        } else {
-            match key.code {
-                KeyCode::Char('q') => return Ok(Some(Action::UI(Quit))),
-                _ => {
-                    self.top_bar.handle_key_events(key)?;
-                    self.time_entry_container.handle_key_events(key)?;
-                    self.notes.handle_key_events(key)?;
-                }
-            }
+            return self.notes.handle_key_events(key);
         }
+        if self.charge_code_modal.is_active {
+            return self.charge_code_modal.handle_key_events(key);
+        }
+        if self.time_edit_modal.is_active {
+            return self.time_edit_modal.handle_key_events(key);
+        }
+        if self.swap_time_modal.is_active {
+            return self.swap_time_modal.handle_key_events(key);
+        }
+
+        // Handling global shortcuts
+        match (key.code, key.modifiers) {
+            (KeyCode::Char('r'), KeyModifiers::CONTROL) => {
+                self.redo_action();
+                return Ok(None);
+            }
+            (KeyCode::Char('u'), KeyModifiers::NONE) => {
+                self.undo_action();
+                return Ok(None);
+            }
+            (KeyCode::Char('q'), KeyModifiers::NONE) => {
+                return Ok(Some(Action::UI(Quit)));
+            }
+            _ => {}
+        }
+
+        // If no modals are active and no global shortcuts are pressed, delegate to other components
+        self.top_bar.handle_key_events(key)?;
+        self.time_entry_container.handle_key_events(key)?;
+        self.notes.handle_key_events(key)?;
 
         Ok(None)
     }

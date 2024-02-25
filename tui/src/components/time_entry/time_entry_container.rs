@@ -135,12 +135,14 @@ impl Component for TimeEntryContainer {
                         // went from pause to play
                         true => {
                             if let Some(tx) = &self.command_tx {
+                                tx.send(Action::TT(TTAct::SaveState))?;
                                 tx.send(Action::api_request_action(PlayEntry { id: entry.id }))?;
                             }
                         }
                         // went from play to pause
                         false => {
                             if let Some(tx) = &self.command_tx {
+                                tx.send(Action::TT(TTAct::SaveState))?;
                                 tx.send(Action::api_request_action(PauseEntry { id: entry.id }))?;
                             }
                         }
@@ -157,6 +159,7 @@ impl Component for TimeEntryContainer {
             }
             KeyCode::Char('a') => {
                 if let Some(tx) = &self.command_tx {
+                    tx.send(Action::TT(TTAct::SaveState))?;
                     tx.send(Action::api_request_action(CreateTimeEntry {
                         day: self.current_day.into(),
                     }))?;
@@ -173,6 +176,7 @@ impl Component for TimeEntryContainer {
             }
             KeyCode::Char('d') => {
                 if let (Some(tx), Some(entry)) = (&self.command_tx, self.get_selected_entry()) {
+                    tx.send(Action::TT(TTAct::SaveState))?;
                     tx.send(Action::api_request_action(DeleteEntry { id: entry.id }))?;
 
                     // state will get updated after this request is processed, but
