@@ -355,7 +355,9 @@ impl Component for Home<'_> {
         // If no modals are active and no global shortcuts are pressed, delegate to other components
         self.top_bar.handle_key_events(key)?;
         self.time_entry_container.handle_key_events(key)?;
-        self.notes.handle_key_events(key)?;
+        if !self.time_entry_container.is_empty(){
+            self.notes.handle_key_events(key)?;
+        }
 
         Ok(None)
     }

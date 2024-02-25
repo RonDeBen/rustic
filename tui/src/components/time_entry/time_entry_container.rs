@@ -32,6 +32,10 @@ impl TimeEntryContainer {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
     pub fn set_time_entries(&mut self, entries: Vec<TimeEntry>) {
         self.entries = entries;
     }

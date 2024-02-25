@@ -272,8 +272,8 @@ impl Vim {
                         textarea.move_cursor(CursorMove::End);
                         return Transition::Mode(Mode::Visual);
                     }
-                    Input { key: Key::Esc, .. }
-                    | Input {
+                    // Input { key: Key::Esc, .. }
+                    Input {
                         key: Key::Char('v'),
                         ctrl: false,
                         ..

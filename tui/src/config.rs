@@ -21,9 +21,17 @@ pub struct AppConfig {
     pub _config_dir: PathBuf,
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct VimModeConfig {
     pub enabled: bool,
+}
+
+impl Default for VimModeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
