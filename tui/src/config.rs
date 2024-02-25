@@ -21,6 +21,11 @@ pub struct AppConfig {
     pub _config_dir: PathBuf,
 }
 
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct VimModeConfig {
+    pub enabled: bool,
+}
+
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
     #[serde(default, flatten)]
@@ -29,6 +34,8 @@ pub struct Config {
     pub keybindings: KeyBindings,
     #[serde(default)]
     pub styles: Styles,
+    #[serde(default)]
+    pub vim_mode: VimModeConfig,
 }
 
 impl Config {
@@ -235,7 +242,7 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
             char = format!("f({c})");
             &char
         }
-        KeyCode::Char(' ')  => "space",
+        KeyCode::Char(' ') => "space",
         KeyCode::Char(c) => {
             char = c.to_string();
             &char

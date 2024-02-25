@@ -1,5 +1,5 @@
-use super::Component;
 use crate::api_client::ApiRequest::UpdateEntryNote;
+use crate::components::Component;
 use crate::{action::Action, tui::Frame};
 use color_eyre::eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent};
@@ -10,14 +10,14 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_textarea::TextArea;
 
 #[derive(Debug, Clone, Default)]
-pub struct Notes<'a> {
+pub struct RegularNotes<'a> {
     pub editor: TextArea<'a>,
     pub is_edit_mode: bool,
     entry_id: i32,
     command_tx: Option<UnboundedSender<Action>>,
 }
 
-impl Notes<'_> {
+impl RegularNotes<'_> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -35,7 +35,7 @@ impl Notes<'_> {
     }
 }
 
-impl Component for Notes<'_> {
+impl Component for RegularNotes<'_> {
     fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let title = if self.is_edit_mode {
             "'ESC' to stop editing"
@@ -91,3 +91,4 @@ impl Component for Notes<'_> {
         Ok(())
     }
 }
+

@@ -9,10 +9,11 @@ use crate::{
         Action,
         UIAct::{self, *},
     },
+    api_client::ApiClientExt,
     components::{home::Home, Component},
     config::Config,
     mode::Mode,
-    tui, api_client::ApiClientExt,
+    tui,
 };
 
 pub struct App {
@@ -30,8 +31,8 @@ pub struct App {
 impl App {
     pub async fn new(tick_rate: f64, frame_rate: f64, api_client: &ApiClient) -> Result<Self> {
         let starting_state = api_client.get_full_state().await?;
-        let home = Home::new(starting_state);
         let config = Config::new()?;
+        let home = Home::new(starting_state, &config);
         let mode = Mode::Crud;
         Ok(Self {
             tick_rate,

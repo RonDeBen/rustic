@@ -4,7 +4,7 @@ use super::{
         charge_code_picker::ChargeCodePickerModal, swap_time_modal::layout::SwapTimeModal,
         time_edit_modal::TimeEditModal,
     },
-    notes::Notes,
+    notes::notes_wrapper::NotesWrapper,
     standup::standup_container::StandupContainer,
     time_entry::{entry::TimeEntry, time_entry_container::TimeEntryContainer},
     top_bar::layout::TopBar,
@@ -35,7 +35,7 @@ pub struct Home<'a> {
     // components
     top_bar: TopBar,
     time_entry_container: TimeEntryContainer,
-    notes: Notes<'a>,
+    notes: NotesWrapper<'a>,
     charge_code_modal: ChargeCodePickerModal,
     time_edit_modal: TimeEditModal,
     swap_time_modal: SwapTimeModal,
@@ -49,7 +49,7 @@ pub struct Home<'a> {
 }
 
 impl Home<'_> {
-    pub fn new(starting_state: FullState) -> Self {
+    pub fn new(starting_state: FullState, config: &Config) -> Self {
         let current_day = Day::get_current_day();
         let current_entries = starting_state.get_current_time_entries();
         let time_entry_container = TimeEntryContainer::new(current_entries, 0, current_day);
@@ -57,13 +57,13 @@ impl Home<'_> {
 
         Self {
             command_tx: None,
-            config: Config::default(),
+            config: config.clone(),
             top_bar: TopBar::new(current_day),
             time_entry_container,
             charge_code_modal,
             time_edit_modal: TimeEditModal::default(),
             swap_time_modal: SwapTimeModal::default(),
-            notes: Notes::default(),
+            notes: NotesWrapper::new(config),
             full_state: starting_state,
             current_day,
             mode: Mode::default(),
@@ -323,7 +323,7 @@ impl Component for Home<'_> {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> Result<Option<Action>> {
-        if self.notes.is_edit_mode {
+        if self.notes.is_edit_mode() {
             return self.notes.handle_key_events(key);
         }
         if self.charge_code_modal.is_active {
