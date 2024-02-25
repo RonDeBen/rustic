@@ -75,6 +75,19 @@ pub async fn update_time_entry_time_request(
     Ok(Json(updated_entry.into()))
 }
 
+pub async fn update_time_entry_request(
+    Extension(pool): Extension<PgPool>,
+    Json(update_request): Json<TimeEntryVM>,
+) -> Result<Json<DayTimeEntries>> {
+    let day = update_request.day;
+    upsert_time_entry(&pool, update_request).await?;
+
+    let entries = fetch_time_entries_for_day(&pool, day.into()).await?;
+    let day_entries = DayTimeEntries::new(day, entries.as_slice());
+
+    Ok(Json(day_entries))
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct NotePayload {
     pub note: String,

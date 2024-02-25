@@ -63,6 +63,33 @@ where
     .await
 }
 
+pub async fn upsert_time_entry<'e, E>(exec: E, update: TimeEntryVM) -> Result<(), sqlx::Error>
+where
+    E: Executor<'e, Database = Postgres>,
+{
+    sqlx::query(
+        "INSERT INTO time_tracking.time_entries (id, start_time, total_time, note, day, charge_code_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (id) DO UPDATE SET
+         start_time = EXCLUDED.start_time,
+         total_time = EXCLUDED.total_time,
+         note = EXCLUDED.note,
+         day = EXCLUDED.day,
+         charge_code_id = EXCLUDED.charge_code_id
+         RETURNING id, start_time, total_time, note, day, charge_code_id"
+    )
+    .bind(update.id)
+    .bind(update.start_time)
+    .bind(update.total_time)
+    .bind(update.note)
+    .bind(update.day as i16)
+    .bind(update.charge_code.as_ref().map(|x| x.id))
+    .execute(exec)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn fetch_time_entry_by_id<'e, E>(exec: E, id: i32) -> Result<TimeEntryRaw, sqlx::Error>
 where
     E: Executor<'e, Database = Postgres>,

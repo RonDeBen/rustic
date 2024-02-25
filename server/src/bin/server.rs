@@ -38,6 +38,7 @@ async fn main() {
         .route("/time_entries/:id/pause", put(pause_time_entry_request))
         .route("/time_entries/:id", delete(delete_time_entry_request))
         .route("/time_entries/costpoint", get(get_costpoint_entries))
+        .route("/time_entries/update", put(update_time_entry_request))
         .route("/charge_codes", get(get_charge_codes))
         .route("/admin/cleanup", post(delete_old_entries_request))
         .layer(axum::extract::Extension(pool))
