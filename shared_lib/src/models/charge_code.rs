@@ -8,8 +8,10 @@ pub struct ChargeCode {
     pub is_nc: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct ChargeCodeVM {
     pub id: i32,
     pub alias: String,
 }
+
+

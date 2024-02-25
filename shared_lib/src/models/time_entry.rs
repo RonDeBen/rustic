@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use super::{charge_code::ChargeCodeVM, day::Day};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug)]
 pub struct TimeEntryVM {
     pub id: i32,
     pub start_time: Option<NaiveDateTime>,
@@ -14,8 +14,6 @@ pub struct TimeEntryVM {
     pub is_active: bool,
     pub charge_code: Option<ChargeCodeVM>,
 }
-
-impl Eq for TimeEntryVM {}
 
 impl Hash for TimeEntryVM {
     fn hash<H: Hasher>(&self, state: &mut H) {

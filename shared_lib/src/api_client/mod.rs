@@ -43,6 +43,19 @@ impl ApiClient {
             .await
     }
 
+    pub async fn update_time_entry(
+        &self,
+        time_entry_update: TimeEntryVM,
+    ) -> Result<DayTimeEntries, reqwest::Error> {
+        self.client
+            .put(&format!("{}/time_entries/update", self.base_url))
+            .json(&time_entry_update)
+            .send()
+            .await?
+            .json::<DayTimeEntries>()
+            .await
+    }
+
     pub async fn update_time_entry_charge_code(
         &self,
         time_entry_id: i32,
