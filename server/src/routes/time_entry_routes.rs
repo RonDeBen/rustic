@@ -146,7 +146,13 @@ pub async fn get_costpoint_entries(
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<Vec<CostpointEntryVM>>> {
     let mut raw_entries = fetch_costpoint_entries(&pool).await?;
-    let entries: Vec<CostpointEntryVM> = raw_entries.drain(..).map(|entry| entry.into()).collect();
+    let entries: Vec<CostpointEntryVM> = raw_entries
+        .drain(..)
+        .filter_map(|entry| match entry.try_into() {
+            Ok(vm) => Some(vm),
+            Err(_) => None,
+        })
+        .collect();
 
     Ok(Json(entries))
 }

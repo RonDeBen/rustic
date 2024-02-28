@@ -1,6 +1,6 @@
-#[derive(sqlx::FromRow)]
+#[derive(sqlx::FromRow, serde::Serialize)]
 pub struct CostpointEntryRaw {
-    pub charge_code: String,
+    pub charge_code: Option<String>,
     pub total_time_milliseconds: i64,
     pub entry_date: String,
     pub notes: String,
@@ -14,14 +14,17 @@ pub struct CostpointEntryVM {
     pub notes: String,
 }
 
-impl From<CostpointEntryRaw> for CostpointEntryVM {
-    fn from(value: CostpointEntryRaw) -> Self {
-        Self {
-            charge_code: value.charge_code,
+impl TryFrom<CostpointEntryRaw> for CostpointEntryVM {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CostpointEntryRaw) -> Result<Self, Self::Error> {
+        let charge_code = value.charge_code.ok_or(anyhow::anyhow!("Charge code was null"))?;
+        Ok(Self {
+            charge_code,
             hours: milliseconds_to_quarter_hours(value.total_time_milliseconds),
             date: value.entry_date,
             notes: value.notes,
-        }
+        })
     }
 }
 
