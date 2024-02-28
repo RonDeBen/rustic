@@ -43,13 +43,13 @@ impl Component for VimnNotes<'_> {
         // Determine title and border style based on whether editing is enabled
         let title = if self.is_edit_mode {
             match self.vim.mode {
-                Mode::Normal => "NORMAL MODE - 'i' to insert, 'v' to visual, Esc to quit",
-                Mode::Insert => "INSERT MODE - Esc to normal",
-                Mode::Visual => "VISUAL MODE - 'y' to copy, 'd' to cut, Esc to normal",
-                Mode::Operator(_) => "OPERATOR MODE",
+                Mode::Normal => format!("{} - 'i' to insert, 'v' to visual, Esc to quit", Mode::Normal),
+                Mode::Insert => format!("{} - Esc to normal", Mode::Insert),
+                Mode::Visual => format!("{} - 'y' to copy, 'd' to cut, Esc to normal", Mode::Visual),
+                Mode::Operator(_) => format!("{}", self.vim.mode),
             }
         } else {
-            "Press '/' to start editing"
+            "Press '/' to start editing".to_string()
         };
 
         let border_color = match self.is_edit_mode {
@@ -102,7 +102,7 @@ impl Component for VimnNotes<'_> {
             }
         } else if key.code == KeyCode::Char('/') {
             self.is_edit_mode = true;
-            self.vim = Vim::new(Mode::Normal); // Start in Normal mode when entering edit mode
+            self.vim = Vim::new(Mode::Insert);
         }
 
         Ok(None)
