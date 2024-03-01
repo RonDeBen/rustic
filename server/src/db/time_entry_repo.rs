@@ -1,17 +1,17 @@
 use crate::models::{costpoint_entry::CostpointEntryRaw, time_entry::TimeEntryRaw};
 use chrono::NaiveDateTime;
 use shared_lib::models::{day::Day, time_entry::TimeEntryVM};
-use sqlx::{Executor, Postgres};
+use sqlx::{Executor, Sqlite};
 use std::collections::HashMap;
 
 pub async fn fetch_all_time_entries<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT te.id, te.start_time, te.total_time, te.note, te.day, cc.id as charge_code_id, cc.alias
-         FROM time_tracking.time_entries te
-         LEFT JOIN time_tracking.charge_codes cc ON te.charge_code_id = cc.id"
+         FROM time_entries te
+         LEFT JOIN charge_codes cc ON te.charge_code_id = cc.id"
     )
     .fetch_all(exec)
     .await
@@ -19,12 +19,12 @@ where
 
 pub async fn fetch_all_running_timers<'e, E>(exec: E) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT te.id, te.start_time, te.total_time, te.note, te.day, cc.id as charge_code_id, cc.alias
-         FROM time_tracking.time_entries te
-         LEFT JOIN time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+         FROM time_entries te
+         LEFT JOIN charge_codes cc ON te.charge_code_id = cc.id
          WHERE te.start_time IS NOT NULL",
     )
     .fetch_all(exec)
@@ -50,12 +50,12 @@ pub async fn fetch_time_entries_for_day<'e, E>(
     day: i16,
 ) -> Result<Vec<TimeEntryRaw>, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT te.id, te.start_time, te.total_time, te.note, te.day, cc.id as charge_code_id, cc.alias
-         FROM time_tracking.time_entries te
-         LEFT JOIN time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+         FROM time_entries te
+         LEFT JOIN charge_codes cc ON te.charge_code_id = cc.id
          WHERE te.day = $1"
     )
     .bind(day)
@@ -65,10 +65,10 @@ where
 
 pub async fn upsert_time_entry<'e, E>(exec: E, update: TimeEntryVM) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query(
-        "INSERT INTO time_tracking.time_entries (id, start_time, total_time, note, day, charge_code_id)
+        "INSERT INTO time_entries (id, start_time, total_time, note, day, charge_code_id)
          VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (id) DO UPDATE SET
          start_time = EXCLUDED.start_time,
@@ -92,12 +92,12 @@ where
 
 pub async fn fetch_time_entry_by_id<'e, E>(exec: E, id: i32) -> Result<TimeEntryRaw, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query_as::<_, TimeEntryRaw>(
         "SELECT te.id, te.start_time, te.total_time, te.note, te.day, cc.id as charge_code_id, cc.alias
-         FROM time_tracking.time_entries te
-         LEFT JOIN time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+         FROM time_entries te
+         LEFT JOIN charge_codes cc ON te.charge_code_id = cc.id
          WHERE te.id = $1"
     )
     .bind(id)
@@ -107,10 +107,10 @@ where
 
 pub async fn create_time_entry<'e, E>(exec: E, day: Day) -> Result<TimeEntryRaw, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     let time_entry = sqlx::query_as::<_, TimeEntryRaw>(
-        "INSERT INTO time_tracking.time_entries (start_time, total_time, note, day, created_at)
+        "INSERT INTO time_entries (start_time, total_time, note, day, created_at)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, start_time, total_time, note, day, null as charge_code_id, null as alias",
     )
@@ -131,11 +131,11 @@ pub async fn update_charge_code_for_time_entry<'e, E>(
     charge_code_id: i32,
 ) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     // First, update the charge code for the time entry
     sqlx::query(
-        "UPDATE time_tracking.time_entries
+        "UPDATE time_entries
          SET charge_code_id = $2
          WHERE id = $1",
     )
@@ -153,10 +153,10 @@ pub async fn update_time_for_time_entry<'e, E>(
     total_time: i64,
 ) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query(
-        "UPDATE time_tracking.time_entries
+        "UPDATE time_entries
          SET total_time = $2
          WHERE id = $1",
     )
@@ -174,10 +174,10 @@ pub async fn add_time_to_entry<'e, E>(
     add_time: i64,
 ) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query(
-        "UPDATE time_tracking.time_entries
+        "UPDATE time_entries
          SET total_time = GREATEST(0, total_time + $2)
          WHERE id = $1",
     )
@@ -195,9 +195,9 @@ pub async fn update_time_entry_note<'e, E>(
     new_note: String,
 ) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
-    sqlx::query("UPDATE time_tracking.time_entries SET note = $1 WHERE id = $2")
+    sqlx::query("UPDATE time_entries SET note = $1 WHERE id = $2")
         .bind(new_note)
         .bind(id)
         .execute(exec)
@@ -212,10 +212,10 @@ pub async fn play_time_entry_and_return_day<'e, E>(
     start_time: NaiveDateTime,
 ) -> Result<i16, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     let (day,): (i16,) = sqlx::query_as(
-        "UPDATE time_tracking.time_entries SET start_time = $1 WHERE id = $2 RETURNING day",
+        "UPDATE time_entries SET start_time = $1 WHERE id = $2 RETURNING day",
     )
     .bind(start_time)
     .bind(id)
@@ -227,10 +227,10 @@ where
 
 pub async fn pause_time_entry<'e, E>(exec: E, id: i32, elapsed_time: i64) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query(
-        "UPDATE time_tracking.time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2",
+        "UPDATE time_entries SET total_time = total_time + $1, start_time = NULL WHERE id = $2",
     )
     .bind(elapsed_time)
     .bind(id)
@@ -242,9 +242,9 @@ where
 
 pub async fn delete_time_entry<'e, E>(exec: E, id: i32) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
-    sqlx::query("DELETE FROM time_tracking.time_entries WHERE id = $1")
+    sqlx::query("DELETE FROM time_entries WHERE id = $1")
         .bind(id)
         .execute(exec)
         .await?;
@@ -254,10 +254,10 @@ where
 
 pub async fn delete_old_time_entries<'e, E>(exec: E) -> Result<(), sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     sqlx::query(
-        "DELETE FROM time_tracking.time_entries
+        "DELETE FROM time_entries
          WHERE created_at < NOW() - INTERVAL '7 days'",
     )
     .execute(exec)
@@ -268,7 +268,7 @@ where
 
 pub async fn fetch_costpoint_entries<'e, E>(exec: E) -> Result<Vec<CostpointEntryRaw>, sqlx::Error>
 where
-    E: Executor<'e, Database = Postgres>,
+    E: Executor<'e, Database = Sqlite>,
 {
     let entries = sqlx::query_as::<_, CostpointEntryRaw>(
 "
@@ -285,9 +285,9 @@ SELECT
     TO_CHAR(te.created_at, 'MM/DD/YY') AS entry_date,
     STRING_AGG(te.note, '\n') AS notes
 FROM
-    time_tracking.time_entries te
+    time_entries te
 LEFT JOIN
-    time_tracking.charge_codes cc ON te.charge_code_id = cc.id
+    charge_codes cc ON te.charge_code_id = cc.id
 GROUP BY
     cc.code, TO_CHAR(te.created_at, 'MM/DD/YY');
 ",
@@ -301,22 +301,29 @@ GROUP BY
 #[cfg(test)]
 mod tests {
     use crate::db::time_entry_repo::*;
-    use crate::utils::connections::get_connection;
     use chrono::Utc;
+    use sqlx::{migrate, Pool};
+
+    async fn init_test_db() -> Pool<Sqlite> {
+        let pool = Pool::connect("sqlite::memory:").await.expect("Failed to create in-memory database");
+        migrate!().run(&pool).await.expect("Failed to run migrations on test database");
+
+        return pool;
+    }
 
     #[tokio::test]
     async fn can_create_new_entry() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
         let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch initial time entries for Monday")
             .len();
-        let _entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let _entry = create_time_entry(&mut *tx, Day::Monday).await.expect("Failed to create time entry");
         let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch final time entries for Monday")
             .len();
 
         assert_eq!(start_count, 0);
@@ -327,15 +334,15 @@ mod tests {
 
     #[tokio::test]
     async fn can_fetch_entries_by_day() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let _entry_monday_1 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        let _entry_monday_2 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        let _entry_tuesday_1 = create_time_entry(&mut *tx, Day::Tuesday).await.unwrap();
+        let _entry_monday_1 = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to insert time entry");
+        let _entry_monday_2 = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to insert time entry");
+        let _entry_tuesday_1 = create_time_entry(&mut *tx, Day::Tuesday).await.expect("faild to insert time entry");
         let monday_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch final time entries for Monday")
             .len();
 
         assert_eq!(monday_count, 2);
@@ -345,11 +352,11 @@ mod tests {
 
     #[tokio::test]
     async fn can_fetch_entry_by_id() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        let found_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
+        let found_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
 
         assert_eq!(entry.id, found_entry.id);
 
@@ -358,14 +365,14 @@ mod tests {
 
     #[tokio::test]
     async fn can_update_notes() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
         let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
         update_time_entry_note(&mut *tx, entry.id, "new note".to_string())
             .await
-            .unwrap();
-        let updated_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+            .expect("failed to update time entry note");
+        let updated_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
 
         assert_ne!(entry.note, updated_entry.note);
         assert_eq!(updated_entry.note, "new note".to_string());
@@ -375,19 +382,19 @@ mod tests {
 
     #[tokio::test]
     async fn pausing_updates_elapsed_time() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
         let start_time: NaiveDateTime = Utc::now().naive_utc();
         play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
-            .unwrap();
+            .expect("failed to play time entry");
         let ten_min_millis = 600000;
         pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
-            .unwrap();
-        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+            .expect("failed to pause time entry");
+        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
 
         assert_eq!(paused_entry.total_time, ten_min_millis);
 
@@ -396,19 +403,19 @@ mod tests {
 
     #[tokio::test]
     async fn pausing_adds_to_toal_time() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
         let start_time: NaiveDateTime = Utc::now().naive_utc();
         play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
-            .unwrap();
+            .expect("failed to play time entry");
         let ten_min_millis = 600000;
         pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
-            .unwrap();
-        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+            .expect("failed to pause time entry");
+        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
 
         // gets first 10 millis
         assert_eq!(paused_entry.total_time, ten_min_millis);
@@ -416,11 +423,11 @@ mod tests {
         let start_time: NaiveDateTime = Utc::now().naive_utc();
         play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
             .await
-            .unwrap();
+            .expect("failed to play time entry");
         let ten_min_millis = 600000;
         pause_time_entry(&mut *tx, entry.id, ten_min_millis)
             .await
-            .unwrap();
+            .expect("failed to pause time entry");
         let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
 
         // should be 20 minutes later now
@@ -431,27 +438,27 @@ mod tests {
 
     #[tokio::test]
     async fn can_delete_time_entries() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
         let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch initial time entries")
             .len();
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
+        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
         let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch final time entries")
             .len();
 
         assert_eq!(start_count, 0);
         assert_eq!(end_count, 1);
 
-        delete_time_entry(&mut *tx, entry.id).await.unwrap();
+        delete_time_entry(&mut *tx, entry.id).await.expect("failed to delete time entry");
 
         let after_delete_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
             .await
-            .unwrap()
+            .expect("failed to fetch time entries after deleting")
             .len();
 
         assert_eq!(after_delete_count, 0);
@@ -461,7 +468,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_running_timers() {
-        let pool = get_connection().await;
+        let pool = init_test_db().await;
         let mut tx = pool.begin().await.unwrap();
 
         let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();

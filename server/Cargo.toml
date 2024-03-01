@@ -17,9 +17,10 @@ env_logger = "0.10.1"
 log = "0.4.20"
 serde = "1.0.193"
 serde_repr = "0.1.18"
-sqlx = {version = "0.7.3", features = ["postgres", "runtime-tokio-rustls", "chrono"] }
+sqlx = { version = "0.7.3", features = ["runtime-tokio-rustls", "chrono", "sqlite"] }
 thiserror = "1.0.51"
 tokio = {version = "1", features = ["full"]}
 tower-http = {version = "0.4.4", features = ["cors"]}
 
 shared_lib = { path = "../shared_lib" }
+dirs = "5.0.1"

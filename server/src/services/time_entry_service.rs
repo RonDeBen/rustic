@@ -8,9 +8,9 @@ use crate::{
 };
 use chrono::{NaiveDateTime, Utc};
 use shared_lib::models::day::Day;
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 
-pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, sqlx::Error> {
+pub async fn switch_to_timer(pool: &SqlitePool, id: i32) -> Result<DayTimeEntries, sqlx::Error> {
     // pause all running timers
     let running_timers = fetch_all_running_timers(pool).await?;
     for timer in running_timers {
@@ -32,7 +32,7 @@ pub async fn switch_to_timer(pool: &PgPool, id: i32) -> Result<DayTimeEntries, s
     Ok(DayTimeEntries::new(day, entries.as_slice()))
 }
 
-async fn pause_timer(pool: &PgPool, entry: &TimeEntryRaw) -> Result<(), sqlx::Error> {
+async fn pause_timer(pool: &SqlitePool, entry: &TimeEntryRaw) -> Result<(), sqlx::Error> {
     let elapsed_time = get_elapsed_time(entry);
     pause_time_entry(pool, entry.id, elapsed_time).await?;
 

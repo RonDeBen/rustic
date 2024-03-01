@@ -9,9 +9,9 @@ use crate::utils::time::get_elapsed_time;
 use axum::{extract::Path, http::StatusCode, Extension, Json};
 use serde::{Deserialize, Serialize};
 use shared_lib::models::{full_state::FullState, time_entry::TimeEntryVM};
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 
-pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Result<Json<FullState>> {
+pub async fn get_everything_request(Extension(pool): Extension<SqlitePool>) -> Result<Json<FullState>> {
     let entries = fetch_all_time_entries(&pool).await?;
     let time_entries = organize_time_entries_by_day(entries);
     let charge_codes = fetch_charge_codes(&pool).await?;
@@ -26,7 +26,7 @@ pub async fn get_everything_request(Extension(pool): Extension<PgPool>) -> Resul
 
 pub async fn create_time_entry_request(
     Path(day_num): Path<i16>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<DayTimeEntries>> {
     let _ = create_time_entry(&pool, day_num.into()).await?;
     let entries = fetch_time_entries_for_day(&pool, day_num).await?;
@@ -44,7 +44,7 @@ pub struct EntryAndCodeIdPath {
 
 pub async fn update_time_entry_charge_code_request(
     Path(params): Path<EntryAndCodeIdPath>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<TimeEntryVM>> {
     update_charge_code_for_time_entry(&pool, params.id, params.code_id).await?;
     let updated_entry = fetch_time_entry_by_id(&pool, params.id).await?;
@@ -59,7 +59,7 @@ pub struct EntryAndTimePath {
 
 pub async fn add_time_to_entry_request(
     Path((id, add_time)): Path<(i32, i64)>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<TimeEntryVM>> {
     add_time_to_entry(&pool, id, add_time).await?;
     let updated_entry = fetch_time_entry_by_id(&pool, id).await?;
@@ -68,7 +68,7 @@ pub async fn add_time_to_entry_request(
 
 pub async fn update_time_entry_time_request(
     Path(params): Path<EntryAndTimePath>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<TimeEntryVM>> {
     update_time_for_time_entry(&pool, params.id, params.total_time).await?;
     let updated_entry = fetch_time_entry_by_id(&pool, params.id).await?;
@@ -76,7 +76,7 @@ pub async fn update_time_entry_time_request(
 }
 
 pub async fn update_time_entry_request(
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
     Json(update_request): Json<TimeEntryVM>,
 ) -> Result<Json<DayTimeEntries>> {
     let day = update_request.day;
@@ -95,7 +95,7 @@ pub struct NotePayload {
 
 pub async fn update_time_entry_note_request(
     Path(id): Path<i32>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
     Json(body): Json<NotePayload>,
 ) -> Result<Json<TimeEntryVM>> {
     update_time_entry_note(&pool, id, body.note).await?;
@@ -106,7 +106,7 @@ pub async fn update_time_entry_note_request(
 
 pub async fn play_time_entry_request(
     Path(id): Path<i32>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<DayTimeEntries>> {
     let entries = switch_to_timer(&pool, id).await?;
     Ok(Json(entries))
@@ -114,7 +114,7 @@ pub async fn play_time_entry_request(
 
 pub async fn pause_time_entry_request(
     Path(id): Path<i32>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<DayTimeEntries>> {
     let entry = fetch_time_entry_by_id(&pool, id).await?;
     let elapsed_time = get_elapsed_time(&entry);
@@ -128,7 +128,7 @@ pub async fn pause_time_entry_request(
 
 pub async fn delete_time_entry_request(
     Path(id): Path<i32>,
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<DayTimeEntries>> {
     let entry = fetch_time_entry_by_id(&pool, id).await?;
     delete_time_entry(&pool, id).await?;
@@ -137,13 +137,13 @@ pub async fn delete_time_entry_request(
     Ok(Json(day_time_entries))
 }
 
-pub async fn delete_old_entries_request(Extension(pool): Extension<PgPool>) -> Result<StatusCode> {
+pub async fn delete_old_entries_request(Extension(pool): Extension<SqlitePool>) -> Result<StatusCode> {
     delete_old_time_entries(&pool).await?;
     Ok(StatusCode::OK)
 }
 
 pub async fn get_costpoint_entries(
-    Extension(pool): Extension<PgPool>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<Vec<CostpointEntryVM>>> {
     let mut raw_entries = fetch_costpoint_entries(&pool).await?;
     let entries: Vec<CostpointEntryVM> = raw_entries

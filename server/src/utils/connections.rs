@@ -1,12 +1,26 @@
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use std::path::PathBuf;
 
-pub async fn get_connection() -> Pool<Postgres> {
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or("postgres://rustic_user:password@localhost:5433/rustic_db".to_string());
+use sqlx::{
+    migrate, sqlite::SqliteConnectOptions, Pool, Sqlite
+};
 
-    PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
+pub async fn get_connection() -> Pool<Sqlite> {
+    let database_file = 
+    std::env::var("SQLITE_FILE").ok()
+        .map(|s| PathBuf::from(s))
+        .or(
+            dirs::data_dir().map(|d| d.join("rustic/time_tracking.db"))
+        )
+    .expect("Failed to determine database location");
+
+    Pool::connect_with(SqliteConnectOptions::new()
+        .filename(database_file)
+        .create_if_missing(true)
+    )
         .await
-        .expect("Could not connect to the database")
+        .expect("Failed to connect to sqlite")
+}
+
+pub async fn init_db(pool: &Pool<Sqlite>) {
+    migrate!().run(pool).await.expect("Failed to initialize database");
 }
