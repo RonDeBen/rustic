@@ -258,7 +258,7 @@ where
 {
     sqlx::query(
         "DELETE FROM time_entries
-         WHERE created_at < NOW() - INTERVAL '7 days'",
+         WHERE created_at <= date('now', '-7 day')",
     )
     .execute(exec)
     .await?;
