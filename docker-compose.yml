@@ -14,7 +14,7 @@ services:
       - "127.0.0.1:8001:3000"
     environment:
       RUST_LOG: "debug,sqlx=warn"
-      SQLITE_FILE: "/rustic/time_tracker.db"
+      DATA_DIR: "/rustic"
       SERVER_ADDR: "0.0.0.0:3000"
 
   monitor_workday:

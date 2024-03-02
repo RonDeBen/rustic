@@ -3,18 +3,21 @@ use std::path::PathBuf;
 use sqlx::{
     migrate, sqlite::SqliteConnectOptions, Pool, Sqlite
 };
+use tokio::fs;
 
 pub async fn get_connection() -> Pool<Sqlite> {
-    let database_file = 
-    std::env::var("SQLITE_FILE").ok()
+
+    let data_dir = std::env::var("DATA_DIR").ok()
         .map(|s| PathBuf::from(s))
-        .or(
-            dirs::data_dir().map(|d| d.join("rustic/time_tracking.db"))
-        )
-    .expect("Failed to determine database location");
+        .or(dirs::data_dir())
+        .expect("Failed to determine data directory");
+
+    if !data_dir.exists() {
+        fs::create_dir_all(&data_dir).await.expect("Failed to create data directory");
+    }
 
     Pool::connect_with(SqliteConnectOptions::new()
-        .filename(database_file)
+        .filename(data_dir.join("time_tracking.db"))
         .create_if_missing(true)
     )
         .await
