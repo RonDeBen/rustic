@@ -302,190 +302,133 @@ GROUP BY
 mod tests {
     use crate::db::time_entry_repo::*;
     use chrono::Utc;
-    use sqlx::{migrate, Pool};
+    use sqlx::SqlitePool;
 
-    async fn init_test_db() -> Pool<Sqlite> {
-        let pool = Pool::connect("sqlite::memory:").await.expect("Failed to create in-memory database");
-        migrate!().run(&pool).await.expect("Failed to run migrations on test database");
+    const TEST_ENTRY_ID: i32 = 1;
+    const ACTIVE_TEST_ENTRY_ID: i32 = 2;
 
-        return pool;
-    }
+    #[sqlx::test]
+    async fn can_create_new_entry(pool: SqlitePool) {
 
-    #[tokio::test]
-    async fn can_create_new_entry() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
-
-        let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+        let start_count = fetch_time_entries_for_day(&pool, Day::Monday.into())
             .await
             .expect("failed to fetch initial time entries for Monday")
             .len();
-        let _entry = create_time_entry(&mut *tx, Day::Monday).await.expect("Failed to create time entry");
-        let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+        let _entry = create_time_entry(&pool, Day::Monday).await.expect("Failed to create time entry");
+        let end_count = fetch_time_entries_for_day(&pool, Day::Monday.into())
             .await
             .expect("failed to fetch final time entries for Monday")
             .len();
 
         assert_eq!(start_count, 0);
         assert_eq!(end_count, 1);
-
-        tx.rollback().await.unwrap()
     }
 
-    #[tokio::test]
-    async fn can_fetch_entries_by_day() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn can_fetch_entries_by_day(pool: SqlitePool) {
 
-        let _entry_monday_1 = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to insert time entry");
-        let _entry_monday_2 = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to insert time entry");
-        let _entry_tuesday_1 = create_time_entry(&mut *tx, Day::Tuesday).await.expect("faild to insert time entry");
-        let monday_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+        let monday_count = fetch_time_entries_for_day(&pool, Day::Monday.into())
             .await
             .expect("failed to fetch final time entries for Monday")
             .len();
 
         assert_eq!(monday_count, 2);
-
-        tx.rollback().await.unwrap()
     }
 
-    #[tokio::test]
-    async fn can_fetch_entry_by_id() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn can_fetch_entry_by_id(pool: SqlitePool) {
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
-        let found_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
+        let found_entry = fetch_time_entry_by_id(&pool, TEST_ENTRY_ID).await.expect("failed to fetch time entry for id");
 
-        assert_eq!(entry.id, found_entry.id);
-
-        tx.rollback().await.unwrap()
+        assert_eq!(TEST_ENTRY_ID, found_entry.id);
+        assert_eq!("foo", found_entry.note);
     }
 
-    #[tokio::test]
-    async fn can_update_notes() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn can_update_notes(pool: SqlitePool) {
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        update_time_entry_note(&mut *tx, entry.id, "new note".to_string())
+        let original_entry = fetch_time_entry_by_id(&pool, TEST_ENTRY_ID)
+            .await
+            .expect("failed to fetch original time entry for id");
+
+        update_time_entry_note(&pool, TEST_ENTRY_ID, "new note".to_string())
             .await
             .expect("failed to update time entry note");
-        let updated_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
 
-        assert_ne!(entry.note, updated_entry.note);
+        let updated_entry = fetch_time_entry_by_id(&pool, TEST_ENTRY_ID)
+            .await
+            .expect("failed to fetch time entry for id");
+
+        assert_ne!(original_entry.note, updated_entry.note);
         assert_eq!(updated_entry.note, "new note".to_string());
-
-        tx.rollback().await.unwrap()
     }
 
-    #[tokio::test]
-    async fn pausing_updates_elapsed_time() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn pausing_updates_elapsed_time(pool: SqlitePool) {
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
-        let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
-            .await
-            .expect("failed to play time entry");
-        let ten_min_millis = 600000;
-        pause_time_entry(&mut *tx, entry.id, ten_min_millis)
+        let ten_min_millis = 600_000;
+        pause_time_entry(&pool, ACTIVE_TEST_ENTRY_ID, ten_min_millis)
             .await
             .expect("failed to pause time entry");
-        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
+        let paused_entry = fetch_time_entry_by_id(&pool, ACTIVE_TEST_ENTRY_ID).await.expect("failed to fetch time entry for id");
 
         assert_eq!(paused_entry.total_time, ten_min_millis);
-
-        tx.rollback().await.unwrap()
     }
 
-    #[tokio::test]
-    async fn pausing_adds_to_toal_time() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn pausing_adds_to_total_time(pool: SqlitePool) {
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
-        let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
-            .await
-            .expect("failed to play time entry");
-        let ten_min_millis = 600000;
-        pause_time_entry(&mut *tx, entry.id, ten_min_millis)
+        let ten_min_millis = 600_000;
+
+        pause_time_entry(&pool, ACTIVE_TEST_ENTRY_ID, ten_min_millis)
             .await
             .expect("failed to pause time entry");
-        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.expect("failed to fetch time entry for id");
+
+        let paused_entry = fetch_time_entry_by_id(&pool, ACTIVE_TEST_ENTRY_ID).await.expect("failed to fetch time entry for id");
 
         // gets first 10 millis
         assert_eq!(paused_entry.total_time, ten_min_millis);
 
         let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
+        play_time_entry_and_return_day(&pool, ACTIVE_TEST_ENTRY_ID, start_time)
             .await
             .expect("failed to play time entry");
-        let ten_min_millis = 600000;
-        pause_time_entry(&mut *tx, entry.id, ten_min_millis)
+        pause_time_entry(&pool, ACTIVE_TEST_ENTRY_ID, ten_min_millis)
             .await
             .expect("failed to pause time entry");
-        let paused_entry = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+        let paused_entry = fetch_time_entry_by_id(&pool, ACTIVE_TEST_ENTRY_ID).await.unwrap();
 
         // should be 20 minutes later now
         assert_eq!(paused_entry.total_time, 2 * ten_min_millis);
-
-        tx.rollback().await.unwrap()
     }
 
-    #[tokio::test]
-    async fn can_delete_time_entries() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn can_delete_time_entries(pool: SqlitePool) {
 
-        let start_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+        let start_count = fetch_time_entries_for_day(&pool, Day::Monday.into())
             .await
             .expect("failed to fetch initial time entries")
             .len();
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.expect("failed to create time entry");
-        let end_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+
+        delete_time_entry(&pool, TEST_ENTRY_ID)
             .await
-            .expect("failed to fetch final time entries")
-            .len();
+            .expect("failed to delete time entry");
 
-        assert_eq!(start_count, 0);
-        assert_eq!(end_count, 1);
-
-        delete_time_entry(&mut *tx, entry.id).await.expect("failed to delete time entry");
-
-        let after_delete_count = fetch_time_entries_for_day(&mut *tx, Day::Monday.into())
+        let end_count = fetch_time_entries_for_day(&pool, Day::Monday.into())
             .await
             .expect("failed to fetch time entries after deleting")
             .len();
 
-        assert_eq!(after_delete_count, 0);
-
-        tx.rollback().await.unwrap()
+        assert_eq!(start_count, 2);
+        assert_eq!(end_count, 1);
     }
 
-    #[tokio::test]
-    async fn can_get_running_timers() {
-        let pool = init_test_db().await;
-        let mut tx = pool.begin().await.unwrap();
+    #[sqlx::test(fixtures("time_entries"))]
+    async fn can_get_running_timers(pool: SqlitePool) {
 
-        let entry = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        let _entry2 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-        let _entry3 = create_time_entry(&mut *tx, Day::Monday).await.unwrap();
-
-        let start_time: NaiveDateTime = Utc::now().naive_utc();
-        play_time_entry_and_return_day(&mut *tx, entry.id, start_time)
-            .await
-            .unwrap();
-
-        let running_timers = fetch_all_running_timers(&mut *tx).await.unwrap();
-        let started_timer = fetch_time_entry_by_id(&mut *tx, entry.id).await.unwrap();
+        let running_timers = fetch_all_running_timers(&pool).await.unwrap();
 
         assert_eq!(running_timers.len(), 1);
-        assert_eq!(started_timer.id, running_timers.first().unwrap().id);
-
-        tx.rollback().await.unwrap()
+        assert_eq!(ACTIVE_TEST_ENTRY_ID, running_timers.first().unwrap().id);
     }
 }
