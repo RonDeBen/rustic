@@ -178,7 +178,7 @@ where
 {
     sqlx::query(
         "UPDATE time_entries
-         SET total_time = GREATEST(0, total_time + $2)
+         SET total_time = MAX(0, total_time + $2)
          WHERE id = $1",
     )
     .bind(entry_id)

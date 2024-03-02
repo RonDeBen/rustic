@@ -10,7 +10,9 @@ use axum::{extract::Path, http::StatusCode, Extension, Json};
 use serde::{Deserialize, Serialize};
 use shared_lib::models::{full_state::FullState, time_entry::TimeEntryVM};
 use sqlx::SqlitePool;
+use tracing::instrument;
 
+#[instrument(err)]
 pub async fn get_everything_request(Extension(pool): Extension<SqlitePool>) -> Result<Json<FullState>> {
     let entries = fetch_all_time_entries(&pool).await?;
     let time_entries = organize_time_entries_by_day(entries);
@@ -24,6 +26,7 @@ pub async fn get_everything_request(Extension(pool): Extension<SqlitePool>) -> R
     Ok(Json(full_state))
 }
 
+#[instrument(err)]
 pub async fn create_time_entry_request(
     Path(day_num): Path<i16>,
     Extension(pool): Extension<SqlitePool>,
@@ -36,12 +39,13 @@ pub async fn create_time_entry_request(
     Ok(Json(day_time_entries))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct EntryAndCodeIdPath {
     id: i32,
     code_id: i32,
 }
 
+#[instrument(err)]
 pub async fn update_time_entry_charge_code_request(
     Path(params): Path<EntryAndCodeIdPath>,
     Extension(pool): Extension<SqlitePool>,
@@ -51,12 +55,13 @@ pub async fn update_time_entry_charge_code_request(
     Ok(Json(updated_entry.into()))
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct EntryAndTimePath {
     id: i32,
     total_time: i64,
 }
 
+#[instrument(err)]
 pub async fn add_time_to_entry_request(
     Path((id, add_time)): Path<(i32, i64)>,
     Extension(pool): Extension<SqlitePool>,
@@ -66,6 +71,7 @@ pub async fn add_time_to_entry_request(
     Ok(Json(updated_entry.into()))
 }
 
+#[instrument(err)]
 pub async fn update_time_entry_time_request(
     Path(params): Path<EntryAndTimePath>,
     Extension(pool): Extension<SqlitePool>,
@@ -75,6 +81,7 @@ pub async fn update_time_entry_time_request(
     Ok(Json(updated_entry.into()))
 }
 
+#[instrument(err)]
 pub async fn update_time_entry_request(
     Extension(pool): Extension<SqlitePool>,
     Json(update_request): Json<TimeEntryVM>,
@@ -88,11 +95,12 @@ pub async fn update_time_entry_request(
     Ok(Json(day_entries))
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct NotePayload {
     pub note: String,
 }
 
+#[instrument(err)]
 pub async fn update_time_entry_note_request(
     Path(id): Path<i32>,
     Extension(pool): Extension<SqlitePool>,
@@ -104,6 +112,7 @@ pub async fn update_time_entry_note_request(
     Ok(Json(entry.into()))
 }
 
+#[instrument(err)]
 pub async fn play_time_entry_request(
     Path(id): Path<i32>,
     Extension(pool): Extension<SqlitePool>,
@@ -112,6 +121,7 @@ pub async fn play_time_entry_request(
     Ok(Json(entries))
 }
 
+#[instrument(err)]
 pub async fn pause_time_entry_request(
     Path(id): Path<i32>,
     Extension(pool): Extension<SqlitePool>,
@@ -126,6 +136,7 @@ pub async fn pause_time_entry_request(
     Ok(Json(day_entries))
 }
 
+#[instrument(err)]
 pub async fn delete_time_entry_request(
     Path(id): Path<i32>,
     Extension(pool): Extension<SqlitePool>,
@@ -137,11 +148,13 @@ pub async fn delete_time_entry_request(
     Ok(Json(day_time_entries))
 }
 
+#[instrument(err)]
 pub async fn delete_old_entries_request(Extension(pool): Extension<SqlitePool>) -> Result<StatusCode> {
     delete_old_time_entries(&pool).await?;
     Ok(StatusCode::OK)
 }
 
+#[instrument(err)]
 pub async fn get_costpoint_entries(
     Extension(pool): Extension<SqlitePool>,
 ) -> Result<Json<Vec<CostpointEntryVM>>> {
