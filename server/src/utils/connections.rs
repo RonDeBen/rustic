@@ -9,7 +9,7 @@ pub async fn get_connection() -> Pool<Sqlite> {
 
     let data_dir = std::env::var("DATA_DIR").ok()
         .map(|s| PathBuf::from(s))
-        .or(dirs::data_dir())
+        .or(dirs::data_dir().map(|dir| dir.join("rustic")))
         .expect("Failed to determine data directory");
 
     if !data_dir.exists() {
