@@ -1,19 +1,6 @@
 version: "3.8"
 
 services:
-  db:
-    build: ./db/db_init/
-    container_name: rustic_db
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:5434:5432"
-    environment:
-      POSTGRES_USER: rustic_user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: rustic_db
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
   server:
     build:
       dockerfile: server/Dockerfile
@@ -21,14 +8,13 @@ services:
       - .:/app
       - ../shared_lib:/app/shared_lib
       - cargo-cache:/usr/local/cargo/registry
+      - data:/rustic
     command: sh -c "cargo run --bin rustic-server"
     ports:
       - "127.0.0.1:8001:3000"
-    depends_on:
-      - db
     environment:
       RUST_LOG: "debug,sqlx=warn"
-      DATABASE_URL: "postgres://rustic_user:password@db:5432/rustic_db"
+      DATA_DIR: "/rustic"
       SERVER_ADDR: "0.0.0.0:3000"
 
   monitor_workday:
@@ -47,5 +33,5 @@ services:
 
 volumes:
   cargo-cache:
-  postgres-data:
+  data:
 

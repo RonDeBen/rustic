@@ -14,6 +14,7 @@ async fn main() {
     env_logger::init();
 
     let pool = utils::connections::get_connection().await;
+    utils::connections::init_db(&pool).await;
 
     let app = Router::new()
         .route("/full_state", get(get_everything_request))
@@ -47,6 +48,8 @@ async fn main() {
     let default_addr = "127.0.0.1:3000".to_string();
     let addr = std::env::var("SERVER_ADDR").unwrap_or(default_addr);
     let addr: SocketAddr = addr.parse().expect("Invalid address");
+
+    log::info!("Starting server on {addr}");
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

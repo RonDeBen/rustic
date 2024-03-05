@@ -1,20 +1,19 @@
-CREATE schema IF NOT EXISTS time_tracking;
 
-CREATE TABLE IF NOT EXISTS time_tracking.charge_codes (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS charge_codes (
+    id INTEGER PRIMARY KEY,
     alias TEXT,
     code TEXT,
     is_nc BOOLEAN
 );
 
-CREATE TABLE IF NOT EXISTS time_tracking.time_entries (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS time_entries (
+    id INTEGER PRIMARY KEY,
     start_time TIMESTAMP NULL,
     total_time BIGINT,
     note TEXT,
     day SMALLINT,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    charge_code_id INTEGER NULL REFERENCES time_tracking.charge_codes(id) ON DELETE SET NULL
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    charge_code_id INTEGER NULL REFERENCES charge_codes(id) ON DELETE SET NULL
 );
 
 -- if you ever want time_entries to have many charge codes
