@@ -32,3 +32,9 @@ Vacation,FRNGE.VAC,false
 Overhead - Business Technologies (BT),OVRHD.010.000,false
 Overhead - Gov,OVRHD.030.000,false
 Overhead - Gov Unallow,OVRHD.030.999,false
+WTACFI21 - Development,C0002.US010.2201.003,false
+WTACFI21 - Project Mgmt,C0002.US010.2301.100,false
+JNOC IL6 - Project Mgmt,C0002.US010.2301.100,false
+JNOC IL6 - Development,C0002.US010.2301.110,false
+WTACFI21 - Orig Install Lbr,C0002.US010.2201.110,false
+OH - GV COST TRK Training,OVRHD.030.003.001, false

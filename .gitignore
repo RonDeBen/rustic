@@ -33,6 +33,7 @@ Cargo.lock
 *.tmp
 *.swp
 *~
+test.txt
 
 # Node modules (if you have a web frontend or use Node.js tooling)
 # /node_modules/
@@ -40,4 +41,3 @@ Cargo.lock
 # ---- DevSpace ----
 # Ignore DevSpace cache and log folder
 .devspace/
-
